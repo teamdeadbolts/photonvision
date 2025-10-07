@@ -166,6 +166,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        logger.info("java.library.path: " + System.getProperty("java.library.path"));
         logger.info(
                 "Starting PhotonVision version "
                         + PhotonVersion.versionString
