@@ -30,6 +30,7 @@ public enum Platform {
     WINDOWS_64("Windows x64", Platform::getUnknownModel, "winx64", false, OSType.WINDOWS, true),
     LINUX_32("Linux x86", Platform::getUnknownModel, "linuxx64", false, OSType.LINUX, true),
     LINUX_64("Linux x64", Platform::getUnknownModel, "linuxx64", false, OSType.LINUX, true),
+    LINUX_AMD("Linux AMD64", Platform::getUnknownModel, "linuxx64", false, OSType.LINUX, true),
     LINUX_RASPBIAN32(
             "Linux Raspbian 32-bit",
             Platform::getLinuxDeviceTreeModel,
@@ -135,6 +136,10 @@ public enum Platform {
         return isRubik();
     }
 
+    public static boolean isAmd() {
+        return hasAmdCpu();
+    }
+
     public static boolean isRaspberryPi() {
         return currentPlatform.isPi;
     }
@@ -222,7 +227,11 @@ public enum Platform {
                     // Unknown/exotic installation
                     return UNKNOWN;
                 }
+
             } else if (OS_ARCH.equals("amd64") || OS_ARCH.equals("x86_64")) {
+                if (hasAmdCpu()) {
+                    return LINUX_AMD;
+                }
                 return LINUX_64;
             } else if (OS_ARCH.equals("x86") || OS_ARCH.equals("i386")) {
                 return LINUX_32;
@@ -272,6 +281,10 @@ public enum Platform {
 
     private static boolean isRubik() {
         return fileHasText("/proc/device-tree/model", "RUBIK");
+    }
+
+    private static boolean hasAmdCpu() {
+        return fileHasText("/proc/cpuinfo", "AuthenticAMD");
     }
 
     static String getLinuxDeviceTreeModel() {

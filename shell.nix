@@ -59,19 +59,26 @@ let
       done
     '';
   });
-in
-pkgs.mkShell {
+
   buildInputs = with pkgs; [
-    openjdk21
+    openjdk17
     cmake
     opencv4100
     clang
     lapack
     suitesparse
     pnpm
+    onnxruntime
   ];
+in
+pkgs.mkShell {
+  buildInputs = buildInputs;
   
   shellHook = ''
-    export LD_LIBRARY_PATH=${opencv4100}/share/java/opencv4:${opencv4100}/lib:$LD_LIBRARY_PATH
+
+    export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH
+
+    export LD_LIBRARY_PATH=${opencv4100}/share/java/opencv4:$LD_LIBRARY_PATH
+    export JAVA_HOME=${pkgs.openjdk17}
   '';
 }

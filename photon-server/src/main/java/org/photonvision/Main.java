@@ -38,6 +38,7 @@ import org.photonvision.common.logging.Logger;
 import org.photonvision.common.logging.PvCSCoreLogger;
 import org.photonvision.common.networking.NetworkManager;
 import org.photonvision.common.util.TestUtils;
+import org.photonvision.jni.AmdDetectorJNI;
 import org.photonvision.jni.PhotonTargetingJniLoader;
 import org.photonvision.jni.RknnDetectorJNI;
 import org.photonvision.jni.RubikDetectorJNI;
@@ -166,7 +167,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        logger.info("java.library.path: " + System.getProperty("java.library.path"));
         logger.info(
                 "Starting PhotonVision version "
                         + PhotonVersion.versionString
@@ -257,6 +257,18 @@ public class Main {
             }
         } catch (IOException e) {
             logger.error("Failed to load rubik-JNI!", e);
+        }
+        try {
+            if (Platform.isAmd()) {
+              AmdDetectorJNI.forceLoad();
+              if (AmdDetectorJNI.getInstance().isLoaded()) {
+                  logger.info("AmdDetectorJNI loaded successfully.");
+              } else {
+                  logger.error("Failed to load AmdDetectorJNI!");
+              }
+            }
+        } catch (Exception e) {
+            logger.error("Failed lo load amd-JNI!", e);
         }
         try {
             MrCalJNILoader.forceLoad();

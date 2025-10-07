@@ -38,6 +38,7 @@ import org.photonvision.common.configuration.NeuralNetworkPropertyManager.ModelP
 import org.photonvision.common.hardware.Platform;
 import org.photonvision.common.logging.LogGroup;
 import org.photonvision.common.logging.Logger;
+import org.photonvision.vision.objects.AmdModel;
 import org.photonvision.vision.objects.Model;
 import org.photonvision.vision.objects.RknnModel;
 import org.photonvision.vision.objects.RubikModel;
@@ -189,6 +190,17 @@ public class NeuralNetworkModelManager {
                         Family.RUBIK,
                         Version.YOLOV8));
 
+        nnProps.addModelProperties(
+                new ModelProperties(
+                        Path.of(modelsDirectory.getAbsolutePath(), "yolov5-test.onnx"),
+                        "Test",
+                        cocoLabels,
+                        640,
+                        640,
+                        Family.ONNX,
+                        Version.YOLOV5));
+
+
         return nnProps;
     }
 
@@ -201,6 +213,7 @@ public class NeuralNetworkModelManager {
         switch (Platform.getCurrentPlatform()) {
             case LINUX_QCS6490 -> supportedBackends.add(Family.RUBIK);
             case LINUX_RK3588_64 -> supportedBackends.add(Family.RKNN);
+            case LINUX_AMD -> supportedBackends.add(Family.ONNX);
             default -> {
                 logger.warn(
                         "No supported neural network backends found for this platform: "
@@ -228,7 +241,8 @@ public class NeuralNetworkModelManager {
 
     public enum Family {
         RKNN(".rknn"),
-        RUBIK(".tflite");
+        RUBIK(".tflite"),
+        ONNX(".onnx");
 
         private final String fileExtension;
 
@@ -297,6 +311,8 @@ public class NeuralNetworkModelManager {
             return Optional.empty();
         }
 
+        // logger.info("Supported backends: " + supportedBackends);
+
         return models.get(supportedBackends.get(0)).stream().findFirst();
     }
 
@@ -336,6 +352,9 @@ public class NeuralNetworkModelManager {
                 }
                 case RUBIK -> {
                     models.get(properties.family()).add(new RubikModel(properties));
+                }
+                case ONNX -> {
+                    models.get(properties.family()).add(new AmdModel(properties));
                 }
             }
             logger.info(
@@ -435,7 +454,6 @@ public class NeuralNetworkModelManager {
                     }
                     Path outputPath =
                             modelsDirectory.toPath().resolve(entry.getName().substring(resource.length() + 1));
-
                     // Check if the file already exists or if it is a supported model file
                     if ((Files.exists(outputPath))
                             || !(entry.getName().endsWith("txt")

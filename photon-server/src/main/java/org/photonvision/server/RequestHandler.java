@@ -613,6 +613,9 @@ public class RequestHandler {
                 case LINUX_RK3588_64:
                     family = NeuralNetworkModelManager.Family.RKNN;
                     break;
+                case LINUX_AMD:
+                    family = NeuralNetworkModelManager.Family.ONNX;
+                    break;
                 default:
                     ctx.status(400);
                     ctx.result("The current platform does not support object detection models");
@@ -672,6 +675,7 @@ public class RequestHandler {
                         switch (family) {
                             case RUBIK -> new RubikModel(modelProperties).load();
                             case RKNN -> new RknnModel(modelProperties).load();
+                            case ONNX -> throw new RuntimeException("ONNX models are not yet supported");
                         };
             } catch (RuntimeException e) {
                 ctx.status(400);

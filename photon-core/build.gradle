@@ -26,6 +26,8 @@ nativeConfig.dependencies.add wpilibTools.deps.wpilib("hal")
 nativeConfig.dependencies.add wpilibTools.deps.wpilibOpenCv("frc" + openCVYear, wpi.versions.opencvVersion.get())
 
 dependencies {
+    def nativeName = wpilibTools.platformMapper.currentPlatform.platformName
+
     // Zip
     implementation 'org.zeroturnaround:zt-zip:1.14'
 
@@ -42,6 +44,8 @@ dependencies {
     implementation("org.photonvision:rubik_jni-java:$rubikVersion") {
         transitive = false
     }
+
+    implementation "org.teamdeadbolts:amd_jni-${nativeName}:$amdJniVersion"
     implementation("org.photonvision:photon-libcamera-gl-driver-jni:$libcameraDriverVersion:linuxarm64") {
         transitive = false
     }
