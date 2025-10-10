@@ -386,6 +386,7 @@ public class NeuralNetworkModelManager {
         models = new HashMap<>();
 
         try (Stream<Path> files = Files.walk(modelsDirectory.toPath())) {
+            logger.info("Discovering models in " + modelsDirectory.getAbsolutePath());
             files
                     .filter(Files::isRegularFile)
                     .filter(
@@ -445,6 +446,8 @@ public class NeuralNetworkModelManager {
         try {
             String jarPath =
                     getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+
+            logger.info(jarPath);
             try (JarFile jarFile = new JarFile(jarPath)) {
                 Enumeration<JarEntry> entries = jarFile.entries();
                 while (entries.hasMoreElements()) {

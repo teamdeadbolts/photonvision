@@ -1,5 +1,81 @@
 { pkgs ? import <nixpkgs> {} }:
 let
+  onnxruntimeRocm = let
+    rocprim' = pkgs.rocmPackages.rocprim.overrideAttrs (oldRocprim: {
+      patches = (oldRocprim.patches or [] ) ++ [
+        ./nix/patches/00-rocPRIM-nodiscard.patch
+      ];
+    });
+
+    hipcub' = pkgs.rocmPackages.hipcub.overrideAttrs (oldHipcub: {
+      patches = (oldHipcub.patches or [] ) ++ [
+        ./nix/patches/01-hipCUB-nodiscard.patch
+      ];
+    });
+
+    
+
+  in pkgs.onnxruntime.overrideAttrs (old: rec {
+    buildInputs = (old.buildInputs or []) ++ [
+      pkgs.rocmPackages.rocblas
+      pkgs.rocmPackages.miopen
+      pkgs.rocmPackages.hipblas
+      pkgs.rocmPackages.hipfft
+      pkgs.rocmPackages.rocrand
+      pkgs.rocmPackages.hiprand
+      pkgs.rocmPackages.rccl
+      pkgs.rocmPackages.roctracer
+      pkgs.rocmPackages.rocm-smi
+      pkgs.rocmPackages.hipsparse
+      hipcub'
+      rocprim'
+      pkgs.rocmPackages.clr
+    ];
+
+    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [
+      pkgs.rocmPackages.clr
+      pkgs.perl
+      pkgs.rocmPackages.hipify
+    ];
+
+    makeFlags = [ "VERBOSE=1" ];
+
+    preConfigure = (old.preConfigure or "") + ''
+      export ROCM_PATH=${pkgs.rocmPackages.clr}
+      export HIP_PATH=${pkgs.rocmPackages.clr}
+      export HIP_PLATFORM=amd
+      
+      export CXXFLAGS="$CXXFLAGS -Wno-error=unused-result -Wno-unused-result -Wno-error"
+      export HIPFLAGS="-Wno-error=unused-result -Wno-unused-result -Wno-error"
+
+      export CMAKE_CXX_FLAGS="$CXXFLAGS"
+      export CMAKE_HIP_FLAGS="$HIPFLAGS"
+
+      export CMAKE_PREFIX_PATH="${pkgs.rocmPackages.clr}:${pkgs.rocmPackages.rocblas}:${pkgs.rocmPackages.hiprand}:${pkgs.rocmPackages.rocrand}:${pkgs.rocmPackages.miopen}:${pkgs.rocmPackages.hipblas}:${pkgs.rocmPackages.hipfft}:${pkgs.rocmPackages.rccl}:${pkgs.rocmPackages.roctracer}:${pkgs.rocmPackages.rocm-smi}:${pkgs.rocmPackages.hipsparse}:${hipcub'}/include:${rocprim'}/include:$CMAKE_PREFIX_PATH"
+      
+      export CPATH="${pkgs.rocmPackages.hiprand}/include:${pkgs.rocmPackages.rocrand}/include:${pkgs.rocmPackages.hipsparse}/include:${pkgs.rocmPackages.rocblas}/include:${pkgs.rocmPackages.hipblas}/include:${pkgs.rocmPackages.hipfft}/include:${pkgs.rocmPackages.miopen}/include:${pkgs.rocmPackages.clr}/include:${rocprim'}/include:${hipcub'}/include:$CPATH"
+      
+      mkdir -p tools/ci_build
+      ln -sf ${pkgs.rocmPackages.hipify}/bin/hipify-perl tools/ci_build/hipify-perl
+    '';
+
+    cmakeFlags = (old.cmakeFlags or []) ++ [
+      "-Donnxruntime_USE_ROCM=ON"
+      "-Donnxruntime_ROCM_HOME=${pkgs.rocmPackages.clr}"
+      "-Donnxruntime_USE_MIOPEN=ON"
+      "-Donnxruntime_USE_ROCBLAS=ON"
+      "-Donnxruntime_BUILD_UNIT_TESTS=OFF"
+      "-DCMAKE_BUILD_TYPE=Release"
+      "-DMIOPEN_VERSION_H_PATH=${pkgs.rocmPackages.miopen}/include/miopen"
+      "-Donnxruntime_USE_COMPOSABLE_KERNEL=OFF"
+      "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
+      "-DGPU_TARGETS=gfx1103"
+      "-DAMDGPU_TARGETS=gfx1103"
+      "-DCMAKE_HIP_FLAGS=--offload-arch=gfx1103 -Wno-error=unused-result -Wno-unused-result -Wno-error"
+      "-DCMAKE_CXX_FLAGS=-Wno-error=unused-result -Wno-unused-result -Wno-error"
+    ];
+  });
+
   ade = pkgs.stdenv.mkDerivation rec {
     pname = "ade";
     version = "0.1.2e";
@@ -68,7 +144,9 @@ let
     lapack
     suitesparse
     pnpm
-    onnxruntime
+    onnxruntimeRocm
+    # onnxruntime
+    re2
   ];
 in
 pkgs.mkShell {

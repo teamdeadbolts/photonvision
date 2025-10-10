@@ -37,9 +37,10 @@ public class AmdObjectDetector implements ObjectDetector {
     this.model = model;
     this.inSize = inputSize;
 
-    this.objPointer = AmdJNI.create(model.modelFile.getPath(), model.properties.labels().size(), model.properties.version().ordinal(), -1);
-    if (objPointer <= 0) {
-      throw new RuntimeException("Failed to create AMD detector from path " + model.modelFile.getPath());
+
+    this.objPointer = AmdJNI.create(model.modelFile.getPath(), model.properties.labels().size(), model.properties.version().ordinal(), 0x02);
+    if (objPointer < 0) {
+      throw new RuntimeException("Failed to create AMD detector from path " + model.modelFile.getPath() + " pointer: " + objPointer);
     } else if (!AmdJNI.isQuantized(objPointer)) {
       throw new IllegalArgumentException("Model must be quantized");
     }
@@ -52,7 +53,7 @@ public class AmdObjectDetector implements ObjectDetector {
   @Override
   public void release() {
     if (released.compareAndSet(false, true)) {
-      if (this.objPointer <= 0) {
+      if (this.objPointer < 0) {
         logger.error("Detector is not initialized! Model: " + model.getNickname());
         return;
       }
@@ -69,30 +70,35 @@ public class AmdObjectDetector implements ObjectDetector {
 
   @Override
   public List<NeuralNetworkPipeResult> detect(Mat in, double nmsThresh, double boxThresh) {
-    if (this.objPointer <= 0) {
+    if (this.objPointer < 0) {
       logger.error("Detector is not initialized! Model: " + model.getNickname());
       return List.of();
     }
 
-    Mat letterboxed = new Mat();
-    Letterbox scale = Letterbox.letterbox(in, letterboxed, this.inSize, ColorHelper.colorToScalar(Color.GRAY));
+    // Mat letterboxed = new Mat();
+    // Letterbox scale = Letterbox.letterbox(in, letterboxed, this.inSize, ColorHelper.colorToScalar(Color.GRAY));
 
-    if (!letterboxed.size().equals(this.inSize)) {
-      letterboxed.release();
-      throw new RuntimeException("Letterboxed image has incorrect size! Expected " + this.inSize + " but got " + letterboxed.size());
-    }
+    // if (!letterboxed.size().equals(this.inSize)) {
+    //   letterboxed.release();
+    //   throw new RuntimeException("Letterboxed image has incorrect size! Expected " + this.inSize + " but got " + letterboxed.size());
+    // }
 
-    var results = AmdJNI.detect(this.objPointer, letterboxed.getNativeObjAddr(), nmsThresh, boxThresh);
-    letterboxed.release();
+    var results = AmdJNI.detect(this.objPointer, in.getNativeObjAddr(), nmsThresh, boxThresh);
+    // letterboxed.release();
 
     if (results == null) {
       return List.of();
     }
 
-    return scale.resizeDetections(
-      List.of(results).stream()
+    System.out.println("AMD Detections: " + results.length);
+
+    return List.of(results).stream()
       .map(it -> new NeuralNetworkPipeResult(it.rect, it.getClassId(), it.getConf()))
-      .toList());
+      .toList();
+    // return scale.resizeDetections(
+    //   List.of(results).stream()
+    //   .map(it -> new NeuralNetworkPipeResult(it.rect, it.getClassId(), it.getConf()))
+    //   .toList());
   }
 
 } 

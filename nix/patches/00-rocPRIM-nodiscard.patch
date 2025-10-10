@@ -1,0 +1,44 @@
+diff --git a/benchmark/benchmark_config_dispatch.cpp b/benchmark/benchmark_config_dispatch.cpp
+index fc47fabc..b24e5a0b 100644
+--- a/benchmark/benchmark_config_dispatch.cpp
++++ b/benchmark/benchmark_config_dispatch.cpp
+@@ -63,7 +63,7 @@ static void BM_kernel_launch(benchmark::State& state)
+         hipLaunchKernelGGL(empty_kernel, dim3(1), dim3(1), 0, stream);
+         HIP_CHECK(hipGetLastError());
+     }
+-    hipStreamSynchronize(stream);
++(void)hipStreamSynchronize(stream);
+ }
+ 
+ #define CREATE_BENCHMARK(ST, SK)                \
+diff --git a/rocprim/include/rocprim/device/detail/device_batch_memcpy.hpp b/rocprim/include/rocprim/device/detail/device_batch_memcpy.hpp
+index d43911a5..cbf2bf06 100644
+--- a/rocprim/include/rocprim/device/detail/device_batch_memcpy.hpp
++++ b/rocprim/include/rocprim/device/detail/device_batch_memcpy.hpp
+@@ -1198,7 +1198,7 @@ ROCPRIM_INLINE static hipError_t batch_memcpy_func(void*              temporary_
+     }
+     if(debug_synchronous)
+     {
+-        hipStreamSynchronize(stream);
++(void)hipStreamSynchronize(stream);
+     }
+ 
+     // Launch batch_memcpy_non_blev_kernel.
+@@ -1216,7 +1216,7 @@ ROCPRIM_INLINE static hipError_t batch_memcpy_func(void*              temporary_
+     }
+     if(debug_synchronous)
+     {
+-        hipStreamSynchronize(stream);
++(void)hipStreamSynchronize(stream);
+     }
+ 
+     // Launch batch_memcpy_blev_kernel.
+@@ -1232,7 +1232,7 @@ ROCPRIM_INLINE static hipError_t batch_memcpy_func(void*              temporary_
+     }
+     if(debug_synchronous)
+     {
+-        hipStreamSynchronize(stream);
++(void)hipStreamSynchronize(stream);
+     }
+ 
+     return hipSuccess;

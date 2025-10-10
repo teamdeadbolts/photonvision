@@ -1,0 +1,13 @@
+diff --git a/hipcub/include/hipcub/backend/rocprim/grid/grid_barrier.hpp b/hipcub/include/hipcub/backend/rocprim/grid/grid_barrier.hpp
+index 2f7d206..4c04f8c 100644
+--- a/hipcub/include/hipcub/backend/rocprim/grid/grid_barrier.hpp
++++ b/hipcub/include/hipcub/backend/rocprim/grid/grid_barrier.hpp
+@@ -165,7 +165,7 @@ public:
+      */
+     virtual ~GridBarrierLifetime()
+     {
+-        HostReset();
++        (void)HostReset();
+     }
+ 
+ 
