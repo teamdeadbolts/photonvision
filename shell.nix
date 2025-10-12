@@ -30,6 +30,7 @@ let
       hipcub'
       rocprim'
       pkgs.rocmPackages.clr
+      pkgs.rocmPackages.rocthrust
     ];
 
     nativeBuildInputs = (old.nativeBuildInputs or []) ++ [
@@ -40,20 +41,25 @@ let
 
     makeFlags = [ "VERBOSE=1" ];
 
+    patches = (old.patches or []) ++ [
+       ./nix/patches/02-onnxruntime-fix.patch
+    ];
+
     preConfigure = (old.preConfigure or "") + ''
       export ROCM_PATH=${pkgs.rocmPackages.clr}
       export HIP_PATH=${pkgs.rocmPackages.clr}
       export HIP_PLATFORM=amd
       
-      export CXXFLAGS="$CXXFLAGS -Wno-error=unused-result -Wno-unused-result -Wno-error"
-      export HIPFLAGS="-Wno-error=unused-result -Wno-unused-result -Wno-error"
+      export CXXFLAGS="$CXXFLAGS -std=c++20 -Wno-deprecated-enum-float-conversion -Wno-error=deprecated-enum-float-conversion"
+      export HIPFLAGS="$HIPFLAGS -std=c++20 -Wno-deprecated-enum-float-conversion -Wno-error=deprecated-enum-float-conversion"
+
 
       export CMAKE_CXX_FLAGS="$CXXFLAGS"
       export CMAKE_HIP_FLAGS="$HIPFLAGS"
 
-      export CMAKE_PREFIX_PATH="${pkgs.rocmPackages.clr}:${pkgs.rocmPackages.rocblas}:${pkgs.rocmPackages.hiprand}:${pkgs.rocmPackages.rocrand}:${pkgs.rocmPackages.miopen}:${pkgs.rocmPackages.hipblas}:${pkgs.rocmPackages.hipfft}:${pkgs.rocmPackages.rccl}:${pkgs.rocmPackages.roctracer}:${pkgs.rocmPackages.rocm-smi}:${pkgs.rocmPackages.hipsparse}:${hipcub'}/include:${rocprim'}/include:$CMAKE_PREFIX_PATH"
+      export CMAKE_PREFIX_PATH="${pkgs.rocmPackages.clr}:${pkgs.rocmPackages.rocblas}:${pkgs.rocmPackages.hiprand}:${pkgs.rocmPackages.rocrand}:${pkgs.rocmPackages.miopen}:${pkgs.rocmPackages.hipblas}:${pkgs.rocmPackages.hipfft}:${pkgs.rocmPackages.rccl}:${pkgs.rocmPackages.roctracer}:${pkgs.rocmPackages.rocm-smi}:${pkgs.rocmPackages.hipsparse}:${hipcub'}:${rocprim'}:${pkgs.rocmPackages.rocthrust}:$CMAKE_PREFIX_PATH"
       
-      export CPATH="${pkgs.rocmPackages.hiprand}/include:${pkgs.rocmPackages.rocrand}/include:${pkgs.rocmPackages.hipsparse}/include:${pkgs.rocmPackages.rocblas}/include:${pkgs.rocmPackages.hipblas}/include:${pkgs.rocmPackages.hipfft}/include:${pkgs.rocmPackages.miopen}/include:${pkgs.rocmPackages.clr}/include:${rocprim'}/include:${hipcub'}/include:$CPATH"
+      export CPATH="${pkgs.rocmPackages.hiprand}/include:${pkgs.rocmPackages.rocrand}/include:${pkgs.rocmPackages.hipsparse}/include:${pkgs.rocmPackages.rocblas}/include:${pkgs.rocmPackages.hipblas}/include:${pkgs.rocmPackages.hipfft}/include:${pkgs.rocmPackages.miopen}/include:${pkgs.rocmPackages.clr}/include:${rocprim'}/include:${hipcub'}/include:${pkgs.rocmPackages.rocthrust}/include:$CPATH"
       
       mkdir -p tools/ci_build
       ln -sf ${pkgs.rocmPackages.hipify}/bin/hipify-perl tools/ci_build/hipify-perl
@@ -71,8 +77,13 @@ let
       "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
       "-DGPU_TARGETS=gfx1103"
       "-DAMDGPU_TARGETS=gfx1103"
-      "-DCMAKE_HIP_FLAGS=--offload-arch=gfx1103 -Wno-error=unused-result -Wno-unused-result -Wno-error"
-      "-DCMAKE_CXX_FLAGS=-Wno-error=unused-result -Wno-unused-result -Wno-error"
+      "-DCMAKE_CXX_STANDARD=20"
+      "-DCMAKE_CXX_STANDARD_REQUIRED=ON"
+      "-DCMAKE_HIP_STANDARD=20"
+      "-DCMAKE_HIP_STANDARD_REQUIRED=ON"
+      "-DCMAKE_CXX_EXTENSIONS=OFF"
+       "-DCMAKE_CXX_FLAGS= -Wno-deprecated-enum-float-conversion -Wno-error=deprecated-enum-float-conversion -Wno-error -Wno-error=c++20-extensions"
+  "-DCMAKE_HIP_FLAGS=--offload-arch=gfx1103  -Wno-deprecated-enum-float-conversion -Wno-error=deprecated-enum-float-conversion -Wno-error -Wno-error=c++20-extensions"
     ];
   });
 

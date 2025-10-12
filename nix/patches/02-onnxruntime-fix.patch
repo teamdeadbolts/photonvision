@@ -1,0 +1,730 @@
+diff --git a/onnxruntime/contrib_ops/cuda/math/fft_ops_impl.cu b/onnxruntime/contrib_ops/cuda/math/fft_ops_impl.cu
+index 897631c299..aaf3777c97 100644
+--- a/onnxruntime/contrib_ops/cuda/math/fft_ops_impl.cu
++++ b/onnxruntime/contrib_ops/cuda/math/fft_ops_impl.cu
+@@ -29,7 +29,7 @@ __global__ void _Normalize(
+ template <typename T>
+ void PostProcess(cudaStream_t stream, const std::vector<int64_t>& signal_dims, int64_t N, T* output_data) {
+   int64_t scale = std::accumulate(signal_dims.begin(), signal_dims.end(), 1ll, std::multiplies<int64_t>());
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _Normalize<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(output_data, N, static_cast<int>(scale));
+ }
+ 
+diff --git a/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_4bits.cu b/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_4bits.cu
+index cea1834fa1..122b4a6833 100644
+--- a/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_4bits.cu
++++ b/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_4bits.cu
+@@ -340,7 +340,7 @@ static void dequantize4b_generic(ElementT* dst, const uint8_t* weights, const El
+   const auto thrd_col_blks = (columns + ThreadBlk::kColumn - 1) / ThreadBlk::kColumn;
+   const auto total_thrd_blks = thrd_row_blks * thrd_col_blks;
+ 
+-  const auto grids = (total_thrd_blks + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock;
++  const auto grids = (total_thrd_blks + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock);
+   dequantizeThread4b<ElementT, block_size, qbits, Columnwise><<<grids, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       dst,
+       weights,
+diff --git a/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_8bits.cu b/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_8bits.cu
+index e90ed85b22..f7e22be45d 100644
+--- a/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_8bits.cu
++++ b/onnxruntime/contrib_ops/cuda/quantization/dequantize_blockwise_8bits.cu
+@@ -370,7 +370,7 @@ static void dequantize8b_generic(ElementT* dst, const uint8_t* weights, const El
+   const auto thread_col_blocks = (columns + ThreadBlk::kColumn - 1) / ThreadBlk::kColumn;
+   const auto thread_total_blocks = thread_row_blocks * thread_col_blocks;
+ 
+-  const auto grids = (thread_total_blocks + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock;
++  const auto grids = (thread_total_blocks + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock);
+   dequantizeThread8b<ElementT, block_size, qbits, Columnwise><<<grids, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       dst,
+       weights,
+diff --git a/onnxruntime/contrib_ops/cuda/tensor/crop_impl.cu b/onnxruntime/contrib_ops/cuda/tensor/crop_impl.cu
+index e407164e37..a42b39f02b 100644
+--- a/onnxruntime/contrib_ops/cuda/tensor/crop_impl.cu
++++ b/onnxruntime/contrib_ops/cuda/tensor/crop_impl.cu
+@@ -41,7 +41,7 @@ void CropImpl(
+     const fast_divmod& fdm_dst_hw,
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _CropKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       input_data, src_start_x, src_start_y, src_w, src_hw, fdm_dst_w, fdm_dst_hw, output_data, (CUDA_LONG)N);
+ }
+diff --git a/onnxruntime/contrib_ops/cuda/tensor/image_scaler_impl.cu b/onnxruntime/contrib_ops/cuda/tensor/image_scaler_impl.cu
+index a63cd4755c..64a07289a4 100644
+--- a/onnxruntime/contrib_ops/cuda/tensor/image_scaler_impl.cu
++++ b/onnxruntime/contrib_ops/cuda/tensor/image_scaler_impl.cu
+@@ -37,7 +37,7 @@ void ImageScalerImpl(
+     const int64_t dims[4],  // NCHW
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   fast_divmod fdm_HW((int)(dims[2] * dims[3]));
+   fast_divmod fdm_C;
+   if (dims[0] == 1) {
+diff --git a/onnxruntime/core/providers/cuda/math/clip_impl.cu b/onnxruntime/core/providers/cuda/math/clip_impl.cu
+index f0ff222690..9822ee9937 100644
+--- a/onnxruntime/core/providers/cuda/math/clip_impl.cu
++++ b/onnxruntime/core/providers/cuda/math/clip_impl.cu
+@@ -8,8 +8,8 @@ namespace onnxruntime {
+ namespace cuda {
+ template <typename T>
+ __global__ void _Clip(const T* input, T* output, const T* min, const T* max, T min_default, T max_default, size_t N) {
+-  auto min_val = (min) ? *min : min_default; 
+-  auto max_val = (max) ? *max : max_default; 
++  auto min_val = (min) ? *min : min_default;
++  auto max_val = (max) ? *max : max_default;
+   CALCULATE_ELEMENTWISE_INDEX_OR_EXIT(id, N);
+   output[id] = (input[id] < min_val) ? min_val : ((input[id] > max_val) ? max_val : input[id]);
+ }
+@@ -18,7 +18,7 @@ template <typename T>
+ void ClipImpl(cudaStream_t stream, const T* input_data, T* output_data, const T* min, const T* max, T min_default, T max_default, size_t count) {
+   typedef typename ToCudaType<T>::MappedType CudaT;
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   union ConstAliasUnion {
+     const T *t;
+     const CudaT *cudaT;
+diff --git a/onnxruntime/core/providers/cuda/math/cumsum_impl.cu b/onnxruntime/core/providers/cuda/math/cumsum_impl.cu
+index 8a657dd9dc..c088702491 100644
+--- a/onnxruntime/core/providers/cuda/math/cumsum_impl.cu
++++ b/onnxruntime/core/providers/cuda/math/cumsum_impl.cu
+@@ -33,7 +33,7 @@ __global__ void _CumSumKernel(
+   if (!reverse && !exclusive) {
+     start = 0;
+     end = axis_dim;
+-  
++
+   } else if (reverse && !exclusive) {
+     start = axis_dim;
+     end = input_dim_along_axis - 1;
+@@ -52,14 +52,14 @@ __global__ void _CumSumKernel(
+   int count = end - start + 1;
+   if (count <= 0) {
+     output_data[indices_index] = 0;
+-    return;  
++    return;
+   }
+ 
+   // adjust start index based on the above identified start dim value along the axis of interest
+   int data_index = static_cast<int>(indices_index) + (start - axis_dim) * input_stride_along_axis;
+   T sum = 0;
+ 
+-  // keep accumulating values from the start index for 'count' times and skip appropriately 
++  // keep accumulating values from the start index for 'count' times and skip appropriately
+   while (count != 0) {
+     sum += input_data[data_index];
+     data_index += input_stride_along_axis;
+@@ -80,7 +80,7 @@ void CumSumImpl(
+     bool exclusive,
+     bool reverse) {
+   if (output_size > 0) {
+-    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock);
++    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock));
+ 
+     _CumSumKernel<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data,
+                                                                         input_dim_along_axis,
+@@ -164,4 +164,3 @@ template void CumSumImpl<half>(
+ 
+ }  // namespace cuda
+ }  // namespace onnxruntime
+-
+diff --git a/onnxruntime/core/providers/cuda/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu b/onnxruntime/core/providers/cuda/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
+index 6f31e29091..f99b8c67f3 100644
+--- a/onnxruntime/core/providers/cuda/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
++++ b/onnxruntime/core/providers/cuda/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
+@@ -58,7 +58,7 @@ void DiagonalImpl(
+     const size_t output_size,
+     size_t element_size) {
+   if (output_size > 0) {
+-    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock);
++    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock));
+ 
+     switch (element_size) {
+       case sizeof(int32_t):
+diff --git a/onnxruntime/core/providers/cuda/math/topk_impl.cuh b/onnxruntime/core/providers/cuda/math/topk_impl.cuh
+index 112566e54b..0f5f39541e 100644
+--- a/onnxruntime/core/providers/cuda/math/topk_impl.cuh
++++ b/onnxruntime/core/providers/cuda/math/topk_impl.cuh
+@@ -421,7 +421,7 @@ Status TopKImpl(const CudaKernel* kernel, bool use_deterministic_compute,
+       });
+     }
+ 
+-    auto XPT = static_cast<int64_t>(ceil(static_cast<double>(dimension) / GridDim::maxThreadsPerBlock));
++    auto XPT = static_cast<int64_t>(ceil(static_cast<double>(dimension) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+     if (BT * 2 >= K || 0 == sorted) {
+       RadixTopK<CudaT, BT, 2><<<N, BT, 256 * sizeof(uint32_t), stream>>>(
+           input_x_ptr, output_v_ptr, output_i, elem_nums, size, axis, K, largest, sorted, dimension, XPT,
+@@ -452,8 +452,8 @@ Status TopKImpl(const CudaKernel* kernel, bool use_deterministic_compute,
+     CUDA_RETURN_IF_ERROR(cub::DeviceRadixSort::SortPairs(nullptr, temp_bytes, input_key, output_key, input_value, output_value, dimension, 0, sizeof(T) * 8, stream));
+     auto temp_storage_buffer = kernel->GetScratchBuffer<char>(temp_bytes, ort_stream);
+     auto* temp_storage = temp_storage_buffer.get();
+-    auto blocks_per_grid_D = (int)(ceil(static_cast<float>(dimension) / BT));
+-    auto blocks_per_grid_K = (int)(ceil(static_cast<float>(K) / BT));
++    auto blocks_per_grid_D = (int)(ceil(static_cast<float>(dimension) / static_cast<int>(BT)));
++    auto blocks_per_grid_K = (int)(ceil(static_cast<float>(K) / static_cast<int>(BT)));
+     for (int64_t i = 0; i < N; i++) {
+       FillInput<CudaT><<<blocks_per_grid_D, BT, 0, stream>>>(input_x_ptr, input_key, input_value, elem_nums, size, axis, K, i, dimension);
+       CUDA_RETURN_IF_ERROR(1 == largest ? cub::DeviceRadixSort::SortPairsDescending(temp_storage, temp_bytes, input_key, output_key, input_value, output_value, dimension, 0, sizeof(T) * 8, stream)
+diff --git a/onnxruntime/core/providers/cuda/nn/instance_norm_impl.cu b/onnxruntime/core/providers/cuda/nn/instance_norm_impl.cu
+index 057c301dbd..d05d359aa5 100644
+--- a/onnxruntime/core/providers/cuda/nn/instance_norm_impl.cu
++++ b/onnxruntime/core/providers/cuda/nn/instance_norm_impl.cu
+@@ -43,7 +43,7 @@ void InstanceNormImpl(
+     const fast_divmod& fdm_C,
+     T1* output_data,
+     size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _InstanceNormKernel<T1, T2><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       input_data, scale, bias, mean, variance, variance_correction, epsilon, fdm_HW, fdm_C, output_data, (CUDA_LONG)N);
+ }
+diff --git a/onnxruntime/core/providers/cuda/nn/max_pool_with_index.cu b/onnxruntime/core/providers/cuda/nn/max_pool_with_index.cu
+index 9311f044f4..33ad60096a 100644
+--- a/onnxruntime/core/providers/cuda/nn/max_pool_with_index.cu
++++ b/onnxruntime/core/providers/cuda/nn/max_pool_with_index.cu
+@@ -108,7 +108,7 @@ __global__ void MaxPoolWithIndexKernel(
+       // layouts, does it make sense to do an index conversion as well?
+       // Storing indices in NHWC layout isn't critical as they are supposed to be used by Unpooling operations
+       // which currently assume that indices reference to Tensors in NHWC layout.
+-      int64_t id_nchw = 
++      int64_t id_nchw =
+         (((n_index * channels + c_index) * pooled_height + h_index) * pooled_width + w_index) * pooled_depth + d_index;
+       int64_t offset_nchw = (n_index * channels + c_index) * width * height * depth;
+ 
+@@ -177,7 +177,7 @@ void MaxPoolWithIndex(
+   fast_divmod fdm_w(static_cast<int>(pooled_width));
+   fast_divmod fdm_d(static_cast<int>(pooled_depth));
+ 
+-  int blocksPerGrid = (int)((output_size + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock);
++  int blocksPerGrid = (int)((output_size + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock));
+   MaxPoolWithIndexKernel<T, Layout><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       batchs,
+       channels,
+diff --git a/onnxruntime/core/providers/cuda/nn/shrink_impl.cu b/onnxruntime/core/providers/cuda/nn/shrink_impl.cu
+index 4883c1dd69..b0b120a171 100644
+--- a/onnxruntime/core/providers/cuda/nn/shrink_impl.cu
++++ b/onnxruntime/core/providers/cuda/nn/shrink_impl.cu
+@@ -57,7 +57,7 @@ void ShrinkImpl(
+     const float lambda,
+     T* output_data,
+     size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _ShrinkKernel<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       input_data, bias, lambda, output_data, (CUDA_LONG)N);
+ }
+diff --git a/onnxruntime/core/providers/cuda/object_detection/non_max_suppression_impl.cu b/onnxruntime/core/providers/cuda/object_detection/non_max_suppression_impl.cu
+index 79d38319e2..6fb99f17f5 100644
+--- a/onnxruntime/core/providers/cuda/object_detection/non_max_suppression_impl.cu
++++ b/onnxruntime/core/providers/cuda/object_detection/non_max_suppression_impl.cu
+@@ -249,7 +249,7 @@ Status NmsGpu(cudaStream_t stream,
+   IAllocatorUniquePtr<void> d_nms_mask_ptr{allocator(max_nms_mask_size * sizeof(int))};
+   auto* d_nms_mask = static_cast<int*>(d_nms_mask_ptr.get());
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(max_nms_mask_size) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(max_nms_mask_size) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   SetZero<int><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(max_nms_mask_size, d_nms_mask);
+ 
+   int* d_delete_mask = d_nms_mask;
+@@ -277,7 +277,7 @@ Status NmsGpu(cudaStream_t stream,
+   IAllocatorUniquePtr<void> d_indices_ptr{allocator(num_boxes * sizeof(int))};
+   auto* d_indices = static_cast<int*>(d_indices_ptr.get());
+ 
+-  blocksPerGrid = (int)(ceil(static_cast<float>(num_boxes) / GridDim::maxThreadsPerBlock));
++  blocksPerGrid = (int)(ceil(static_cast<float>(num_boxes) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   Iota<int><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(num_boxes, 0, d_indices);
+ 
+   NMSReduce<<<1, 1024, bit_mask_len * sizeof(int), stream>>>(d_delete_mask, bit_mask_len, num_boxes, max_boxes, d_selected_boxes);
+@@ -369,7 +369,7 @@ Status NonMaxSuppressionImpl(
+   auto* d_sorted_boxes = static_cast<float*>(d_sorted_boxes_ptr.get());
+ 
+   // create sequense of indices
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(num_boxes) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(num_boxes) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   Iota<int><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(num_boxes, 0, d_indices);
+   CUDA_RETURN_IF_ERROR(cudaGetLastError());
+ 
+@@ -430,7 +430,7 @@ Status NonMaxSuppressionImpl(
+     IAllocatorUniquePtr<void> d_normalized_output_indices_ptr{allocator(num_to_keep * 3 * sizeof(int64_t))};
+     auto* d_normalized_output_indices = static_cast<int64_t*>(d_normalized_output_indices_ptr.get());
+ 
+-    blocksPerGrid = (int)(ceil(static_cast<float>(num_to_keep) / GridDim::maxThreadsPerBlock));
++    blocksPerGrid = (int)(ceil(static_cast<float>(num_to_keep) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+     IndexMultiSelect<int, int><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(num_to_keep, d_selected_indices, d_sorted_indices, d_output_indices);
+     NormalizeOutput<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(num_to_keep, d_output_indices, d_normalized_output_indices, batch_index, class_index);
+     CUDA_RETURN_IF_ERROR(cudaGetLastError());
+diff --git a/onnxruntime/core/providers/cuda/object_detection/roialign_impl.cu b/onnxruntime/core/providers/cuda/object_detection/roialign_impl.cu
+index 10053c630a..846d1fc47a 100644
+--- a/onnxruntime/core/providers/cuda/object_detection/roialign_impl.cu
++++ b/onnxruntime/core/providers/cuda/object_detection/roialign_impl.cu
+@@ -190,7 +190,7 @@ void RoiAlignImpl(
+     const bool is_mode_avg,
+     const bool half_pixel,
+     const int64_t* batch_indices_ptr) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(nthreads) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(nthreads) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   RoIAlignForward<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       nthreads,
+       bottom_data,
+diff --git a/onnxruntime/core/providers/cuda/rnn/rnn_impl.cu b/onnxruntime/core/providers/cuda/rnn/rnn_impl.cu
+index 94c8036be6..6fb1e228f9 100644
+--- a/onnxruntime/core/providers/cuda/rnn/rnn_impl.cu
++++ b/onnxruntime/core/providers/cuda/rnn/rnn_impl.cu
+@@ -43,7 +43,7 @@ void ReverseBySequence(cudaStream_t stream,
+   int32_t block_size = batch_size * input_or_hidden_size;
+   fast_divmod div_batch_block(block_size);
+   fast_divmod div_input_or_hidden_size(input_or_hidden_size);
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _ReverseBySequenceKernel<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       max_seq_length, seq_lengths, block_size, div_batch_block, div_input_or_hidden_size, data, reversed_data, (CUDA_LONG)N);
+ }
+@@ -80,12 +80,12 @@ void ReorderBidirectionalDataInSequence(cudaStream_t stream,
+                                         const T* data,
+                                         T* reordered_data,
+                                         const size_t N) {
+-  // The cudnn Y output is organize like [Y1, YB1] [Y2, YB2] ... 
++  // The cudnn Y output is organize like [Y1, YB1] [Y2, YB2] ...
+   // need to reorganize it to [Y1, Y2, ...] [YB1, YB2, ...]
+   int32_t seq_block_size = 2 * batch_size * hidden_size;
+   fast_divmod div_seq_block(seq_block_size);
+   fast_divmod div_output_block(hidden_size);
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _BidirectionalDataKernel<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       seq_length, batch_size, hidden_size, seq_block_size,
+@@ -123,7 +123,7 @@ __global__ void _MaskZeroSequences(const int32_t hidden_size,
+   }
+ }
+ 
+-template <typename T> 
++template <typename T>
+ void MaskZeroSequences(cudaStream_t stream,
+                        const int32_t hidden_size,
+                        T* y_output_data,
+@@ -131,7 +131,7 @@ void MaskZeroSequences(cudaStream_t stream,
+                        T* y_c_output_data,
+                        const int32_t* zeor_seq_index_cache,
+                        const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _MaskZeroSequences<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       hidden_size, y_output_data, y_h_output_data, y_c_output_data, zeor_seq_index_cache, (CUDA_LONG)N);
+ }
+diff --git a/onnxruntime/core/providers/cuda/tensor/compress_impl.cu b/onnxruntime/core/providers/cuda/tensor/compress_impl.cu
+index 0c04e027ca..e6eb9c4876 100644
+--- a/onnxruntime/core/providers/cuda/tensor/compress_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/compress_impl.cu
+@@ -75,7 +75,7 @@ Status CompressImpl(cudaStream_t stream,
+                     const void* input_data,
+                     void* output_data,
+                     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   fast_divmod axis_right_stride_div(axis_right_stride);
+   fast_divmod input_axis_included_stride_div(axis_right_stride * input_axis_dim_length);
+diff --git a/onnxruntime/core/providers/cuda/tensor/gather_impl.cu b/onnxruntime/core/providers/cuda/tensor/gather_impl.cu
+index 2fb91e7ce5..138333a23b 100644
+--- a/onnxruntime/core/providers/cuda/tensor/gather_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/gather_impl.cu
+@@ -64,7 +64,7 @@ void GatherImpl(
+     void* output_data,
+     const size_t N) {
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   switch (element_size) {
+     case sizeof(int8_t): {
+diff --git a/onnxruntime/core/providers/cuda/tensor/grid_sample_impl.cu b/onnxruntime/core/providers/cuda/tensor/grid_sample_impl.cu
+index b23da635bc..28e6a7e5d5 100644
+--- a/onnxruntime/core/providers/cuda/tensor/grid_sample_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/grid_sample_impl.cu
+@@ -219,7 +219,7 @@ __global__ void _GridSampleKernel(
+       T p[4][4] = {};  // [H][W]
+       for (int64_t h = 0; h < 4; h++) {
+         for (int64_t w = 0; w < 4; w++) {
+-          p[h][w] = 
++          p[h][w] =
+             PixelAtGrid<T, Layout>(input_data, BIdx, cIdx, h + y0, w + x0, padding_mode, N, C, H_in, W_in, border);
+         }
+       }
+@@ -244,9 +244,9 @@ void GridSampleImpl(
+   using Ch = Channels<IsNHWC>;
+ 
+   int blocksPerGrid = static_cast<int>(
+-    ceil(static_cast<T>(dims[Ch::N] * dims[Ch::C] * H_out * W_out) / GridDim::maxThreadsPerBlock));
++    ceil(static_cast<T>(dims[Ch::N] * dims[Ch::C] * H_out * W_out) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _GridSampleKernel<T, IsNHWC><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+-      input_data, grid_data, mode, padding_mode, align_corners, 
++      input_data, grid_data, mode, padding_mode, align_corners,
+       dims[Ch::N], dims[Ch::C], dims[Ch::H], dims[Ch::W],
+       H_out, W_out, output_data);
+ }
+diff --git a/onnxruntime/core/providers/cuda/tensor/onehot.cu b/onnxruntime/core/providers/cuda/tensor/onehot.cu
+index 1fb8dbe8b8..8f82b6060f 100644
+--- a/onnxruntime/core/providers/cuda/tensor/onehot.cu
++++ b/onnxruntime/core/providers/cuda/tensor/onehot.cu
+@@ -65,7 +65,7 @@ void OneHotImpl(
+     const out_type off_value,
+     out_type* output_data,
+     size_t count) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _OneHotImpl<in_type, out_type><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+     indices_data,
+@@ -87,7 +87,7 @@ void OneHotWithZeroOffValueImpl(
+     const out_type on_value,
+     out_type* output_data,
+     size_t count) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _OneHotWithZeroOffValueImpl<in_type, out_type><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+     indices_data,
+diff --git a/onnxruntime/core/providers/cuda/tensor/pad_impl.cu b/onnxruntime/core/providers/cuda/tensor/pad_impl.cu
+index 6f530e800f..b0ad554da9 100644
+--- a/onnxruntime/core/providers/cuda/tensor/pad_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/pad_impl.cu
+@@ -145,7 +145,7 @@ void PadImpl(
+   if (N == 0)  // special case where there's a dim value of 0 in the output shape
+     return;
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   switch (pad_mode) {
+     case 0:
+       _PadKernel<T, 0><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+@@ -184,7 +184,7 @@ void PadNCHWInputWithPaddingAlongHAndWImpl(
+   if (N == 0)  // special case where there's a dim value of 0 in the output shape
+     return;
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   switch (pad_mode) {
+     case 0:
+       _PadNCHWInputWithPaddingAlongHAndWKernel<T, 0><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+diff --git a/onnxruntime/core/providers/cuda/tensor/resize_antialias_impl.cu b/onnxruntime/core/providers/cuda/tensor/resize_antialias_impl.cu
+index d56e4bc538..5bb97327a1 100644
+--- a/onnxruntime/core/providers/cuda/tensor/resize_antialias_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/resize_antialias_impl.cu
+@@ -711,7 +711,7 @@ void ResizeTrilinearUpsample(
+   int blocksPerDimsMappingGrid =
+       static_cast<int>(ceil((output_depth + output_height + output_width) / 32.0));
+ 
+-  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   constexpr float support_value = antialias_constants::kSupportSize;
+   float z_scale, h_scale, w_scale;
+diff --git a/onnxruntime/core/providers/cuda/tensor/resize_impl.cu b/onnxruntime/core/providers/cuda/tensor/resize_impl.cu
+index a96d4c82a7..3429c186a4 100644
+--- a/onnxruntime/core/providers/cuda/tensor/resize_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/resize_impl.cu
+@@ -614,7 +614,7 @@ void ResizeNearestImpl(
+     ResizeNearestMode calc_nearest_pixel,
+     int64_t* /* prefix_dim_sum */,
+     NearestMappingInfo* dims_mapping) {
+-  unsigned int blocksPerGrid = static_cast<unsigned int>(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  unsigned int blocksPerGrid = static_cast<unsigned int>(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   bool could2d = rank >= 2 &&
+                  transform_coordinate != ResizeCoordinateTransformationMode::TF_CROP_AND_RESIZE &&
+@@ -724,7 +724,7 @@ void ResizeImpl(
+   // to the user.
+   ORT_ENFORCE(is_2D || is_3D, "Only bilinear/trilinear and bicubic modes are supported in Resize");
+ 
+-  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   fast_divmod div_output_image;
+   if (is_2D) {
+     div_output_image = (rank > 2) ? output_div_pitches[rank - 3] : fast_divmod(gsl::narrow_cast<int>(N));
+diff --git a/onnxruntime/core/providers/cuda/tensor/scatter_nd_impl.cu b/onnxruntime/core/providers/cuda/tensor/scatter_nd_impl.cu
+index 47e7d103ce..66ce6c1731 100644
+--- a/onnxruntime/core/providers/cuda/tensor/scatter_nd_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/scatter_nd_impl.cu
+@@ -77,7 +77,7 @@ Status ScatterNDImpl(
+     return Status::OK();
+ 
+   // Parallelize on number of indices
+-  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(num_indices) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(num_indices) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   switch (element_size) {
+     case sizeof(int8_t):
+@@ -228,7 +228,7 @@ Status _ScatterNDType(
+     const size_t num_updates_elements,
+     ScatterNDReduction reduction) {
+   // Parallelize on number of indices
+-  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(num_indices) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = static_cast<int>(ceil(static_cast<float>(num_indices) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   switch (reduction) {
+     case ScatterNDReduction::Add:
+diff --git a/onnxruntime/core/providers/cuda/tensor/transpose_impl.cu b/onnxruntime/core/providers/cuda/tensor/transpose_impl.cu
+index 602514d1c8..016e7f3d07 100644
+--- a/onnxruntime/core/providers/cuda/tensor/transpose_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/transpose_impl.cu
+@@ -327,7 +327,7 @@ __global__ void TransposeKernel(int32_t shape_rank, const TArray<int64_t> input_
+ 
+ Status TransposeImpl(cudaStream_t stream, size_t element_size, int32_t shape_rank, const TArray<int64_t>& input_strides,
+                      const void* input_data, const TArray<fast_divmod>& fdm_output_strides, void* output_data, int N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   switch (element_size) {
+     case sizeof(int8_t):
+       TransposeKernel<int8_t><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+diff --git a/onnxruntime/core/providers/cuda/tensor/trilu_impl.cu b/onnxruntime/core/providers/cuda/tensor/trilu_impl.cu
+index 30b441a2e4..5281ce246c 100644
+--- a/onnxruntime/core/providers/cuda/tensor/trilu_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/trilu_impl.cu
+@@ -33,7 +33,7 @@ Status TriluImpl(
+     int N,
+     const fast_divmod& batch_divmod_indices,
+     const fast_divmod& row_col_divmod_indices) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   switch (element_size) {
+     case sizeof(int8_t):
+       if (upper) {
+@@ -119,4 +119,4 @@ Status TriluImpl(
+ }
+ 
+ }  // namespace cuda
+-}  // namespace onnxruntime
+\ No newline at end of file
++}  // namespace onnxruntime
+diff --git a/onnxruntime/core/providers/cuda/tensor/upsample_impl.cu b/onnxruntime/core/providers/cuda/tensor/upsample_impl.cu
+index 24aeada559..7524fd1c50 100644
+--- a/onnxruntime/core/providers/cuda/tensor/upsample_impl.cu
++++ b/onnxruntime/core/providers/cuda/tensor/upsample_impl.cu
+@@ -157,7 +157,7 @@ void UpsampleImpl(cudaStream_t stream,
+                   const T* input_data,
+                   T* output_data,
+                   const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   if (onnxruntime::UpsampleMode::NN == upsample_mode) {
+     if (rank == 4) {
+       _UpsampleNearestKernel<T, 4><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+diff --git a/onnxruntime/core/providers/rocm/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu b/onnxruntime/core/providers/rocm/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
+index e1c89a386d..f8bbff0441 100644
+--- a/onnxruntime/core/providers/rocm/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
++++ b/onnxruntime/core/providers/rocm/math/einsum_utils/einsum_auxiliary_ops_diagonal.cu
+@@ -58,7 +58,7 @@ void DiagonalImpl(
+     const size_t output_size,
+     size_t element_size) {
+   if (output_size > 0) {
+-    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / GridDim::maxThreadsPerBlock);
++    int blocksPerGrid = static_cast<int>((output_size + GridDim::maxThreadsPerBlock - 1) / static_cast<int>(GridDim::maxThreadsPerBlock));
+ 
+     switch (element_size) {
+       case sizeof(int32_t):
+diff --git a/orttraining/orttraining/training_ops/cuda/gist/gist_impl.cu b/orttraining/orttraining/training_ops/cuda/gist/gist_impl.cu
+index 4ea692c88c..2615e53846 100644
+--- a/orttraining/orttraining/training_ops/cuda/gist/gist_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/gist/gist_impl.cu
+@@ -376,7 +376,7 @@ void GistBinarizeEncoderImpl(
+     const T* input_data,
+     bool* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _GistBinarizeEncoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+ 
+@@ -386,7 +386,7 @@ void GistBinarizeDecoderImpl(
+     const bool* input_data,
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _GistBinarizeDecoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+ 
+@@ -396,7 +396,7 @@ void GistPack1EncoderImpl(
+     const T* input_data,
+     uint8_t* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_CALL_THROW(cudaMemset(output_data, 0, N));
+   _GistPack1EncoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, GIST_PACK1_FACTOR, (CUDA_LONG)N);
+ }
+@@ -407,7 +407,7 @@ void GistPack1DecoderImpl(
+     const uint8_t* input_data,
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _GistPack1DecoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, GIST_PACK1_FACTOR, (CUDA_LONG)N);
+ }
+@@ -418,7 +418,7 @@ void GistPack8EncoderImpl(
+     const T* input_data,
+     uint8_t* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _GistPack8EncoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+@@ -429,7 +429,7 @@ void GistPack8DecoderImpl(
+     const uint8_t* input_data,
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _GistPack8DecoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+@@ -440,7 +440,7 @@ void GistPack16EncoderImpl(
+     const T* input_data,
+     half* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _GistPack16EncoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+@@ -451,7 +451,7 @@ void GistPack16DecoderImpl(
+     const half* input_data,
+     T* output_data,
+     const size_t N) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(N) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+ 
+   _GistPack16DecoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input_data, output_data, (CUDA_LONG)N);
+ }
+@@ -470,7 +470,7 @@ void GistPackMsfp15EncoderImpl(
+ 
+   const int threads = static_cast<int>(pre_axis_size * num_tiles);
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(threads) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(threads) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _GistPackMsfp15EncoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+     input_data,
+     output_data,
+@@ -496,7 +496,7 @@ void GistPackMsfp15DecoderImpl(
+ 
+   const int threads = static_cast<int>(pre_axis_size * num_tiles);
+ 
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(threads) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(threads) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   _GistPackMsfp15DecoderKernel<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+     input_data,
+     output_data,
+diff --git a/orttraining/orttraining/training_ops/cuda/math/div_grad_impl.cu b/orttraining/orttraining/training_ops/cuda/math/div_grad_impl.cu
+index a468c756ef..5eadc628e4 100644
+--- a/orttraining/orttraining/training_ops/cuda/math/div_grad_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/math/div_grad_impl.cu
+@@ -268,7 +268,7 @@ void ImplDivGradSimple(
+     size_t count,
+     T* da_output_data,
+     T* db_output_data) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+ 
+   switch (simpleBroadcast) {
+@@ -359,7 +359,7 @@ void ImplDivGradRhsPerChannelBatch1(
+     const fast_divmod& fdm_H,
+     T* da_output_data,
+     T* db_output_data) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   if (da_output_data && db_output_data)
+     _DivGradRhsPerChannelBatch1<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+@@ -398,7 +398,7 @@ void ImplDivGradRhsPerChannelBatchN(
+     const fast_divmod& fdm_C,
+     T* da_output_data,
+     T* db_output_data) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+ 
+   if (da_output_data && db_output_data)
+@@ -443,7 +443,7 @@ void ImplDivGrad(
+     const TArray<fast_divmod>& fdm_output_strides,
+     T* da_output_data,
+     T* db_output_data) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   if (a_padded_strides.Size() && b_padded_strides.Size()) {
+     if (da_output_data && db_output_data)
+diff --git a/orttraining/orttraining/training_ops/cuda/math/isfinite_impl.cu b/orttraining/orttraining/training_ops/cuda/math/isfinite_impl.cu
+index f4a1a95e2a..d7e509b1d6 100644
+--- a/orttraining/orttraining/training_ops/cuda/math/isfinite_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/math/isfinite_impl.cu
+@@ -18,7 +18,7 @@ __global__ void _IsFinite(const TSrc* input, bool* output, CUDA_LONG N) {
+ 
+ template <typename TSrc>
+ void IsFinite(cudaStream_t stream, const TSrc* input, bool* output, size_t count) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _IsFinite<<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(input, output, N);
+ }
+@@ -31,4 +31,4 @@ SPECIALIZE_ISFINITE_IMPL(float)
+ SPECIALIZE_ISFINITE_IMPL(double)
+ 
+ }  // namespace cuda
+-}  // namespace onnxruntime
+\ No newline at end of file
++}  // namespace onnxruntime
+diff --git a/orttraining/orttraining/training_ops/cuda/optimizer/adam_impl.cu b/orttraining/orttraining/training_ops/cuda/optimizer/adam_impl.cu
+index a0c72ba8dc..5e28ec216c 100644
+--- a/orttraining/orttraining/training_ops/cuda/optimizer/adam_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/optimizer/adam_impl.cu
+@@ -162,7 +162,7 @@ void AdamOptimizerImpl(
+     T_GRAD* grads_out,
+     T_MIXED_PRECISION_FP* mixed_precision_weights_out,
+     size_t count) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   // If bias correction coefficients are set to 1s, it's equivalent to disabling bias correction.
+   const float alpha_correction = do_bias_correction
+diff --git a/orttraining/orttraining/training_ops/cuda/optimizer/lamb_impl.cu b/orttraining/orttraining/training_ops/cuda/optimizer/lamb_impl.cu
+index f59f5f7dc9..71ceee34a6 100644
+--- a/orttraining/orttraining/training_ops/cuda/optimizer/lamb_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/optimizer/lamb_impl.cu
+@@ -126,7 +126,7 @@ void LambComputeDirection(
+     T3* moment_2_out,
+     size_t count) {
+   int blocksPerGrid =
+-      (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++      (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _LambComputeDirectionImpl<T1, T2, T3, T_GRAD_NORM><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       weights,
+@@ -265,7 +265,7 @@ void LambUpdate(
+     T_MIXED_PRECISION_FP* mixed_precision_weights_out,
+     size_t count) {
+   int blocksPerGrid =
+-      (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++      (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _LambUpdateImpl<T1, T2, T3, T_MIXED_PRECISION_FP><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       eta,
+diff --git a/orttraining/orttraining/training_ops/cuda/optimizer/sg_impl.cu b/orttraining/orttraining/training_ops/cuda/optimizer/sg_impl.cu
+index 1f23309e88..d1afa59e0e 100644
+--- a/orttraining/orttraining/training_ops/cuda/optimizer/sg_impl.cu
++++ b/orttraining/orttraining/training_ops/cuda/optimizer/sg_impl.cu
+@@ -38,7 +38,7 @@ void SGDOptimizerImpl(
+     T* weights_out,
+     T* gradients_out,
+     size_t count) {
+-  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / GridDim::maxThreadsPerBlock));
++  int blocksPerGrid = (int)(ceil(static_cast<float>(count) / static_cast<int>(GridDim::maxThreadsPerBlock)));
+   CUDA_LONG N = static_cast<CUDA_LONG>(count);
+   _SGDOptimizer<T><<<blocksPerGrid, GridDim::maxThreadsPerBlock, 0, stream>>>(
+       eta,
