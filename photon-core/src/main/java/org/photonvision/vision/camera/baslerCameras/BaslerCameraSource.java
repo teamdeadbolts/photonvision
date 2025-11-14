@@ -9,7 +9,6 @@ import org.photonvision.vision.camera.CameraType;
 import org.photonvision.vision.camera.QuirkyCamera;
 import org.photonvision.vision.frame.FrameProvider;
 import org.photonvision.vision.frame.provider.BaslerFrameProvider;
-import org.photonvision.vision.pipe.impl.PixelBinPipe;
 import org.photonvision.vision.processes.VisionSource;
 import org.photonvision.vision.processes.VisionSourceSettables;
 
@@ -51,6 +50,9 @@ public class BaslerCameraSource extends VisionSource {
         if (quirks.hasQuirk(CameraQuirk.BaslerDaA1280Controls)) {
             logger.info("Using Basler DaA1280 Settables");
             settables = new BaslerDaA1280CameraSettables(config);
+        } else if (quirks.hasQuirk(CameraQuirk.BaslerDaA1920Controls)) {
+            logger.info("Using Basler DA1920 Settables");
+            settables = new BaslerDaA1920CameraSettables(config);
         } else {
             logger.debug("Using generic basler settables");
             settables = new GenericBaslerCameraSettables(config);
@@ -92,11 +94,11 @@ public class BaslerCameraSource extends VisionSource {
 
     public static class BaslerVideoMode extends VideoMode {
         public static class BinningConfig {
-            public final PixelBinPipe.PixelBinParams.BinMode mode;
+            public final BinMode mode;
             public final int horz;
             public final int vert;
 
-            public BinningConfig(PixelBinPipe.PixelBinParams.BinMode mode, int horz, int vert) {
+            public BinningConfig(BinMode mode, int horz, int vert) {
                 this.mode = mode;
                 this.horz = horz;
                 this.vert = vert;
@@ -120,6 +122,12 @@ public class BaslerCameraSource extends VisionSource {
                 int pixelFormat, int width, int height, int fps, BinningConfig binningConfig) {
             super(pixelFormat, width, height, fps);
             this.binningConfig = binningConfig;
+        }
+
+        public enum BinMode {
+            NONE,
+            AVERAGE,
+            SUM
         }
     }
 }

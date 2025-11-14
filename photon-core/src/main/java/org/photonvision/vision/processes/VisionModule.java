@@ -136,6 +136,13 @@ public class VisionModule {
                     });
         }
 
+        if (cameraQuirks.hasQuirk(CameraQuirk.NoWhiteBalance)) {
+            pipelineManager.userPipelineSettings.forEach(
+                    it -> {
+                        it.cameraWhiteBalanceTemp = -1;
+                    });
+        }
+
         this.pipelineManager = pipelineManager;
         this.visionSource = visionSource;
         changeSubscriber = new VisionModuleChangeSubscriber(this);
@@ -494,7 +501,7 @@ public class VisionModule {
                         settables.setBlueGain(Math.max(0, pipelineSettings.cameraBlueGain));
 
                         if (cameraQuirks.hasQuirk(CameraQuirk.ManualWB)) {
-                          settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
+                            settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
                         }
                     } else {
                         pipelineSettings.cameraRedGain = -1;
@@ -504,7 +511,7 @@ public class VisionModule {
                         settables.setWhiteBalanceTemp(pipelineSettings.cameraWhiteBalanceTemp);
 
                         if (!cameraQuirks.hasQuirk(CameraQuirk.BaslerDaA1280Controls))
-                          settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
+                            settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
                     }
 
                     setVisionLEDs(pipelineSettings.ledMode);

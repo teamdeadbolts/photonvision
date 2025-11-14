@@ -2,7 +2,6 @@ package org.photonvision.vision.camera.baslerCameras;
 
 import edu.wpi.first.cscore.VideoMode;
 import edu.wpi.first.math.MathUtil;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import org.photonvision.common.configuration.CameraConfiguration;
@@ -85,7 +84,7 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
 
         if (!autowb && lastWBValues[0] != -1 && lastWBValues[2] != -1) {
             BaslerJNI.setWhiteBalance(ptr, lastWBValues);
-        }    
+        }
     }
 
     @Override
@@ -178,6 +177,35 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
             logger.debug("Creating camera");
 
             ptr = BaslerJNI.createCamera(serial);
+            if (ptr == 0) {
+                logger.warn("Failed to create camera");
+                return;
+            }
+
+            switch (mode.binningConfig.mode) {
+                case NONE:
+                    {
+                        if (!BaslerJNI.setPixelBinning(ptr, 0, 1, 1))
+                            logger.warn("Failed to set pixel binning to none");
+                        break;
+                    }
+                case AVERAGE:
+                    {
+                        if (!BaslerJNI.setPixelBinning(
+                                ptr, 0, mode.binningConfig.horz, mode.binningConfig.vert))
+                            logger.warn("Failed to set pixel binning to average");
+                        break;
+                    }
+                case SUM:
+                    {
+                        if (!BaslerJNI.setPixelBinning(
+                                ptr, 1, mode.binningConfig.horz, mode.binningConfig.vert)) {
+                            logger.warn("Failed to set pixel binning to sum");
+                        }
+                        break;
+                    }
+            }
+
             if (!BaslerJNI.setPixelFormat(ptr, mode.pixelFormat.getValue())) {
                 logger.warn("Failed to set pixel format");
                 return;

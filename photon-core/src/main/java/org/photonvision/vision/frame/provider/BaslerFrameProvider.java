@@ -9,9 +9,6 @@ import org.photonvision.common.util.math.MathUtils;
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode;
 import org.photonvision.vision.camera.baslerCameras.GenericBaslerCameraSettables;
 import org.photonvision.vision.opencv.CVMat;
-import org.photonvision.vision.pipe.impl.PixelBinPipe;
-import org.photonvision.vision.pipe.impl.PixelBinPipe.PixelBinParams;
-import org.photonvision.vision.pipe.impl.PixelBinPipe.PixelBinParams.BinMode;
 import org.teamdeadbolts.basler.BaslerJNI;
 
 public class BaslerFrameProvider extends CpuImageProcessor {
@@ -19,9 +16,9 @@ public class BaslerFrameProvider extends CpuImageProcessor {
 
     static final Logger logger = new Logger(BaslerFrameProvider.class, LogGroup.Camera);
 
-    private PixelBinPipe pixelBinPipe = new PixelBinPipe();
-
     private Runnable connectedCallback;
+
+    private long lastFrameTimestamp = 0;
 
     public BaslerFrameProvider(GenericBaslerCameraSettables settables, Runnable connectedCallback) {
         this.settables = settables;
@@ -40,9 +37,10 @@ public class BaslerFrameProvider extends CpuImageProcessor {
 
     @Override
     public void release() {
+        logger.info("Calling release");
         BaslerJNI.stopCamera(settables.ptr);
         BaslerJNI.destroyCamera(settables.ptr);
-        BaslerJNI.cleanUp();
+        // BaslerJNI.cleanUp();
     }
 
     @Override
@@ -83,14 +81,20 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         Mat mat = new Mat(BaslerJNI.takeFrame(settables.ptr));
         BaslerVideoMode.BinningConfig binningConfig =
                 this.settables.getCurrentVideoMode().binningConfig;
-        if (binningConfig.mode != BinMode.NONE) {
-            pixelBinPipe.setParams(
-                    new PixelBinParams(binningConfig.mode, binningConfig.horz, binningConfig.vert));
-            pixelBinPipe.run(mat);
+        // if (binningConfig.mode != BinMode.NONE) {
+        //     pixelBinPipe.setParams(
+        //             new PixelBinParams(binningConfig.mode, binningConfig.horz, binningConfig.vert));
+        //     pixelBinPipe.run(mat);
+        // }
+
+        if (lastFrameTimestamp != 0) {
+            long frameInterval = start - lastFrameTimestamp;
+            double fps = 1_000_000_000.0 / frameInterval;
+            System.out.println("Frame interval: " + (frameInterval / 1000) + " us, FPS: " + fps);
         }
+        lastFrameTimestamp = start;
 
         ret = new CVMat(mat, frame);
-
         return new CapturedFrame(
                 ret, settables.getFrameStaticProperties(), start); // TODO: Timestamping is kinda off rn
     }

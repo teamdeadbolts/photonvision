@@ -61,7 +61,9 @@ public enum CameraQuirk {
 
     /** Quirks to tell the difference between basler cameras */
     BaslerDaA1280Controls,
+    BaslerDaA1920Controls,
 
     /** Other Basler Quirks */
     ManualWB,
+    NoWhiteBalance,
 }

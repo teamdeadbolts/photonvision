@@ -237,7 +237,10 @@ export enum ValidQuirks {
   LifeCamControls = "LifeCamControls",
   PsEyeControls = "PsEyeControls",
   BaslerDaA1280Controls = "BaslerDaA1280Controls",
-  ManualWB = "ManualWB"
+  BaslerDaA1920Controls = "BaslerDaA1920Controls",
+  ManualWB = "ManualWB",
+  NoWhiteBalance = "NoWhiteBalance"
+  
 }
 
 export interface QuirkyCamera {
@@ -390,7 +393,9 @@ export const PlaceholderCameraSettings: UiCameraConfiguration = {
       LifeCamControls: false,
       PsEyeControls: false,
       BaslerDaA1280Controls: false,
-      ManualWB: false
+      BaslerDaA1920Controls: false,
+      ManualWB: false,
+      NoWhiteBalance: false
     }
   },
   isCSICamera: false,

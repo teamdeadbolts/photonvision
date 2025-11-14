@@ -61,7 +61,6 @@ public class CVPipelineSettings implements Cloneable {
     public boolean cameraAutoWhiteBalance = false;
     public double cameraWhiteBalanceTemp = 4000;
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

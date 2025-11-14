@@ -7,16 +7,19 @@ import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVid
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode.BinMode;
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode.BinningConfig;
 
-public class BaslerDaA1280CameraSettables extends GenericBaslerCameraSettables {
+public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
 
-    protected BaslerDaA1280CameraSettables(CameraConfiguration configuration) {
+    protected BaslerDaA1920CameraSettables(CameraConfiguration configuration) {
         super(configuration);
 
-        this.maxExposure = 1000;
-        this.maxGain = 18;
+        this.minExposure = 0.000019;
+        this.maxExposure = 10;
+
+        this.minGain = 1;
+        this.maxGain = 48;
 
         this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk.Gain, true);
-        this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk.AwbRedBlueGain, true);
+        // this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk, null)
     }
 
     @Override
@@ -24,26 +27,24 @@ public class BaslerDaA1280CameraSettables extends GenericBaslerCameraSettables {
         videoModes.put(
                 0,
                 new BaslerVideoMode(
-                        PixelFormat.kBGR.getValue(), 1280, 960, 43, new BinningConfig(BinMode.NONE, 0, 0)));
+                        PixelFormat.kGray.getValue(), 1920, 1200, 100, new BinningConfig(BinMode.NONE, 0, 0)));
+
         videoModes.put(
                 1,
                 new BaslerVideoMode(
-                        PixelFormat.kUYVY.getValue(), 1280, 960, 52, new BinningConfig(BinMode.NONE, 0, 0)));
+                        PixelFormat.kGray.getValue(),
+                        1920 / 2,
+                        1200 / 2,
+                        100,
+                        new BinningConfig(BinMode.AVERAGE, 2, 2)));
+
         videoModes.put(
                 2,
                 new BaslerVideoMode(
-                        PixelFormat.kBGR.getValue(),
-                        1280 / 2,
-                        960 / 2,
-                        43,
+                        PixelFormat.kGray.getValue(),
+                        1920 / 2,
+                        1200 / 2,
+                        100,
                         new BinningConfig(BinMode.SUM, 2, 2)));
-        videoModes.put(
-                3,
-                new BaslerVideoMode(
-                        PixelFormat.kBGR.getValue(),
-                        1280 / 2,
-                        960 / 2,
-                        43,
-                        new BinningConfig(BinMode.AVERAGE, 2, 2)));
     }
 }

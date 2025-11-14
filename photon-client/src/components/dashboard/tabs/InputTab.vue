@@ -153,6 +153,7 @@ const interactiveCols = computed(() =>
       "
     />
     <pv-switch
+      v-if="useCameraSettingsStore().currentPipelineSettings.cameraWhiteBalanceTemp !== -1"
       v-model="useCameraSettingsStore().currentPipelineSettings.cameraAutoWhiteBalance"
       label="Auto White Balance"
       :switch-cols="interactiveCols"

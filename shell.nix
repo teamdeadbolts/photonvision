@@ -1,4 +1,8 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import (fetchTarball {
+    url = "https://github.com/NixOS/nixpkgs/archive/036660e6294d7ae6e4bfd1b0f4e3f4dc2d53c483.tar.gz";
+    sha256 = "sha256:06is1fzmw06y63m0i2zyaj554pwh2p8280pg7b8ws1z0sk4r1k5c";
+  }) {}
+}:
 let
   ade = pkgs.stdenv.mkDerivation rec {
     pname = "ade";
