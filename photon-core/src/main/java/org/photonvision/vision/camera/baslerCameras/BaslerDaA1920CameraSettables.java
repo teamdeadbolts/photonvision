@@ -2,7 +2,6 @@ package org.photonvision.vision.camera.baslerCameras;
 
 import edu.wpi.first.util.PixelFormat;
 import org.photonvision.common.configuration.CameraConfiguration;
-import org.photonvision.vision.camera.CameraQuirk;
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode;
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode.BinMode;
 import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode.BinningConfig;
@@ -13,12 +12,11 @@ public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
         super(configuration);
 
         this.minExposure = 0.000019;
-        this.maxExposure = 10;
+        this.maxExposure = 1000;
 
-        this.minGain = 1;
         this.maxGain = 48;
 
-        this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk.Gain, true);
+        // this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk.Gain, true);
         // this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk, null)
     }
 

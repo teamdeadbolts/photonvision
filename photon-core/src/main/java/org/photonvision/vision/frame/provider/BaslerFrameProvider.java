@@ -6,7 +6,6 @@ import org.opencv.core.Mat;
 import org.photonvision.common.logging.LogGroup;
 import org.photonvision.common.logging.Logger;
 import org.photonvision.common.util.math.MathUtils;
-import org.photonvision.vision.camera.baslerCameras.BaslerCameraSource.BaslerVideoMode;
 import org.photonvision.vision.camera.baslerCameras.GenericBaslerCameraSettables;
 import org.photonvision.vision.opencv.CVMat;
 import org.teamdeadbolts.basler.BaslerJNI;
@@ -18,7 +17,7 @@ public class BaslerFrameProvider extends CpuImageProcessor {
 
     private Runnable connectedCallback;
 
-    private long lastFrameTimestamp = 0;
+    // private long lastFrameTimestamp = 0;
 
     public BaslerFrameProvider(GenericBaslerCameraSettables settables, Runnable connectedCallback) {
         this.settables = settables;
@@ -79,20 +78,20 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         var start = MathUtils.wpiNanoTime();
         BaslerJNI.awaitNewFrame(settables.ptr);
         Mat mat = new Mat(BaslerJNI.takeFrame(settables.ptr));
-        BaslerVideoMode.BinningConfig binningConfig =
-                this.settables.getCurrentVideoMode().binningConfig;
+        // BaslerVideoMode.BinningConfig binningConfig =
+        //         this.settables.getCurrentVideoMode().binningConfig;
         // if (binningConfig.mode != BinMode.NONE) {
         //     pixelBinPipe.setParams(
         //             new PixelBinParams(binningConfig.mode, binningConfig.horz, binningConfig.vert));
         //     pixelBinPipe.run(mat);
         // }
 
-        if (lastFrameTimestamp != 0) {
-            long frameInterval = start - lastFrameTimestamp;
-            double fps = 1_000_000_000.0 / frameInterval;
-            System.out.println("Frame interval: " + (frameInterval / 1000) + " us, FPS: " + fps);
-        }
-        lastFrameTimestamp = start;
+        // if (lastFrameTimestamp != 0) {
+        //     long frameInterval = start - lastFrameTimestamp;
+        //     double fps = 1_000_000_000.0 / frameInterval;
+        //     System.out.println("Frame interval: " + (frameInterval / 1000) + " us, FPS: " + fps);
+        // }
+        // lastFrameTimestamp = start;
 
         ret = new CVMat(mat, frame);
         return new CapturedFrame(

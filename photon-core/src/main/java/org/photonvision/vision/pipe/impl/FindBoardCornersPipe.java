@@ -246,7 +246,9 @@ public class FindBoardCornersPipe
         var outFrame = in.getSecond();
 
         // Convert the inFrame too grayscale to increase contrast
-        Imgproc.cvtColor(inFrame, inFrame, Imgproc.COLOR_BGR2GRAY);
+        if (inFrame.channels() == 3) {
+            Imgproc.cvtColor(inFrame, inFrame, Imgproc.COLOR_BGR2GRAY);
+        }
         boolean boardFound = false;
 
         // Get the size of the inFrame

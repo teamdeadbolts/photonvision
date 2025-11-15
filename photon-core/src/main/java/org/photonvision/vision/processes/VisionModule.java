@@ -508,10 +508,13 @@ public class VisionModule {
                         pipelineSettings.cameraBlueGain = -1;
 
                         // All other cameras (than picams) should support AWB temp
-                        settables.setWhiteBalanceTemp(pipelineSettings.cameraWhiteBalanceTemp);
+                        if (!cameraQuirks.hasQuirk(CameraQuirk.NoWhiteBalance)) {
 
-                        if (!cameraQuirks.hasQuirk(CameraQuirk.BaslerDaA1280Controls))
-                            settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
+                            settables.setWhiteBalanceTemp(pipelineSettings.cameraWhiteBalanceTemp);
+
+                            if (!cameraQuirks.hasQuirk(CameraQuirk.BaslerDaA1280Controls))
+                                settables.setAutoWhiteBalance(pipelineSettings.cameraAutoWhiteBalance);
+                        }
                     }
 
                     setVisionLEDs(pipelineSettings.ledMode);

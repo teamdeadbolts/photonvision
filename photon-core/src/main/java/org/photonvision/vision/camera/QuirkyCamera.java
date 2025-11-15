@@ -95,13 +95,16 @@ public class QuirkyCamera {
                             -1,
                             "Basler daA1280-54uc",
                             CameraQuirk.BaslerDaA1280Controls,
-                            CameraQuirk.ManualWB),
+                            CameraQuirk.ManualWB,
+                            CameraQuirk.Gain,
+                            CameraQuirk.AwbRedBlueGain),
                     new QuirkyCamera(
                             -1,
                             -1,
                             "Basler daA1920-160um",
                             CameraQuirk.BaslerDaA1920Controls,
-                            CameraQuirk.NoWhiteBalance));
+                            CameraQuirk.NoWhiteBalance,
+                            CameraQuirk.Gain));
 
     public static final QuirkyCamera DefaultCamera = new QuirkyCamera(0, 0, "");
     public static final QuirkyCamera ZeroCopyPiCamera =

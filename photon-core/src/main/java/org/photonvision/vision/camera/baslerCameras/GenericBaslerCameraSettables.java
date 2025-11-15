@@ -34,6 +34,7 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
     protected double lastExposure = -1;
     protected int lastGain = -1;
     protected double[] lastWBValues = new double[] {-1, 1, -1};
+    protected boolean lastAutoExposure = false;
 
     protected PVBaslerCameraInfo info;
 
@@ -61,6 +62,7 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
     @Override
     public void setAutoExposure(boolean cameraAutoExposure) {
         logger.debug("Setting auto exposure to " + cameraAutoExposure);
+        this.lastAutoExposure = cameraAutoExposure;
 
         boolean success = BaslerJNI.setAutoExposure(ptr, cameraAutoExposure);
         if (!success) {
@@ -216,6 +218,8 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
             if (this.lastExposure != -1) {
                 this.setExposureRaw(this.lastExposure);
             }
+
+            this.setAutoExposure(this.lastAutoExposure);
 
             if (ptr == 0) {
                 logger.error("Failed to create camera when changing video mode");
