@@ -212,6 +212,12 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
                 logger.warn("Failed to set pixel format");
                 return;
             }
+
+            if (!BaslerJNI.setFrameRate(ptr, mode.fps)) {
+                logger.warn("Settings frame rate not supported");
+                return;
+            }
+
             if (this.lastGain != -1) {
                 this.setGain(this.lastGain);
             }

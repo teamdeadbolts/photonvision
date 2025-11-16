@@ -25,7 +25,7 @@ public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
         videoModes.put(
                 0,
                 new BaslerVideoMode(
-                        PixelFormat.kGray.getValue(), 1920, 1200, 100, new BinningConfig(BinMode.NONE, 0, 0)));
+                        PixelFormat.kGray.getValue(), 1920, 1200, 65, new BinningConfig(BinMode.NONE, 0, 0)));
 
         videoModes.put(
                 1,
