@@ -29,7 +29,8 @@ public class LoadJNI {
         RUBIK_DETECTOR("tensorflowlite", "tensorflowlite_c", "external_delegate", "rubik_jni"),
         RKNN_DETECTOR("rga", "rknnrt", "rknn_jni"),
         MRCAL("mrcal_jni"),
-        LIBCAMERA("photonlibcamera");
+        LIBCAMERA("photonlibcamera"),
+        BASLER("baslerjni");
 
         public final String[] libraries;
 

@@ -33,7 +33,7 @@ public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
                         PixelFormat.kGray.getValue(),
                         1920 / 2,
                         1200 / 2,
-                        100,
+                        160,
                         new BinningConfig(BinMode.AVERAGE, 2, 2)));
 
         videoModes.put(
@@ -42,7 +42,7 @@ public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
                         PixelFormat.kGray.getValue(),
                         1920 / 2,
                         1200 / 2,
-                        100,
+                        160,
                         new BinningConfig(BinMode.SUM, 2, 2)));
     }
 }

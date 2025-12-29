@@ -40,12 +40,6 @@ import org.photonvision.common.logging.Logger;
 import org.photonvision.common.logging.PvCSCoreLogger;
 import org.photonvision.common.networking.NetworkManager;
 import org.photonvision.common.util.TestUtils;
-import org.photonvision.jni.BaslerCameraJNI;
-import org.photonvision.jni.LibraryLoader;
-import org.photonvision.jni.RknnDetectorJNI;
-import org.photonvision.jni.RubikDetectorJNI;
-import org.photonvision.mrcal.MrCalJNILoader;
-import org.photonvision.raspi.LibCameraJNILoader;
 import org.photonvision.server.Server;
 import org.photonvision.vision.apriltag.AprilTagFamily;
 import org.photonvision.vision.camera.PVCameraInfo;
@@ -251,6 +245,10 @@ public class Main {
 
         if (Platform.isRaspberryPi()) {
             tryLoadJNI(JNITypes.LIBCAMERA);
+        }
+
+        if (Platform.isLinux()) {
+            tryLoadJNI(JNITypes.BASLER);
         }
 
         if (Platform.isRK3588()) {

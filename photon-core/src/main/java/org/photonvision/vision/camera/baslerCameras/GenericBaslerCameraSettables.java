@@ -184,6 +184,12 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
                 return;
             }
 
+            BaslerJNI.stopCamera(ptr); // Just in case
+
+            if (!BaslerJNI.setDeviceLinkThroughputLimitEnable(ptr, false)) {
+                logger.warn("Failed to disable throughput limit");
+            }
+
             switch (mode.binningConfig.mode) {
                 case NONE:
                     {
@@ -213,6 +219,7 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
                 return;
             }
 
+            logger.info("Setting fps to " + mode.fps);
             if (!BaslerJNI.setFrameRate(ptr, mode.fps)) {
                 logger.warn("Settings frame rate not supported");
                 return;
