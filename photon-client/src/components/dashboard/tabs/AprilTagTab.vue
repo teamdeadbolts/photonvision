@@ -54,7 +54,7 @@ const interactiveCols = computed(() =>
       label="Threads"
       tooltip="Number of threads spawned by the AprilTag detector"
       :min="1"
-      :max="8"
+      :max="32"
       @update:modelValue="(value) => useCameraSettingsStore().changeCurrentPipelineSetting({ threads: value }, false)"
     />
     <pv-slider

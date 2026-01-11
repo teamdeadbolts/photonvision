@@ -1,6 +1,5 @@
 package org.photonvision.vision.frame.provider;
 
-import edu.wpi.first.util.PixelFormat;
 import edu.wpi.first.util.RawFrame;
 import org.opencv.core.Mat;
 import org.photonvision.common.logging.LogGroup;
@@ -72,26 +71,13 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         }
         var cameraMode = settables.getCurrentVideoMode();
         var frame = new RawFrame();
-        frame.setInfo(cameraMode.width, cameraMode.height, cameraMode.width * 3, PixelFormat.kBGR);
+        frame.setInfo(
+                cameraMode.width, cameraMode.height, cameraMode.width * 3, cameraMode.pixelFormat);
 
         CVMat ret;
         var start = MathUtils.wpiNanoTime();
         BaslerJNI.awaitNewFrame(settables.ptr);
         Mat mat = new Mat(BaslerJNI.takeFrame(settables.ptr));
-        // BaslerVideoMode.BinningConfig binningConfig =
-        //         this.settables.getCurrentVideoMode().binningConfig;
-        // if (binningConfig.mode != BinMode.NONE) {
-        //     pixelBinPipe.setParams(
-        //             new PixelBinParams(binningConfig.mode, binningConfig.horz, binningConfig.vert));
-        //     pixelBinPipe.run(mat);
-        // }
-
-        // if (lastFrameTimestamp != 0) {
-        //     long frameInterval = start - lastFrameTimestamp;
-        //     double fps = 1_000_000_000.0 / frameInterval;
-        //     System.out.println("Frame interval: " + (frameInterval / 1000) + " us, FPS: " + fps);
-        // }
-        // lastFrameTimestamp = start;
 
         ret = new CVMat(mat, frame);
         return new CapturedFrame(

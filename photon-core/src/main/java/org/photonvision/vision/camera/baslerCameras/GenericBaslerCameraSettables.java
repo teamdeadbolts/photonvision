@@ -190,28 +190,17 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
                 logger.warn("Failed to disable throughput limit");
             }
 
-            switch (mode.binningConfig.mode) {
-                case NONE:
-                    {
-                        if (!BaslerJNI.setPixelBinning(ptr, 0, 1, 1))
-                            logger.warn("Failed to set pixel binning to none");
-                        break;
-                    }
-                case AVERAGE:
-                    {
-                        if (!BaslerJNI.setPixelBinning(
-                                ptr, 0, mode.binningConfig.horz, mode.binningConfig.vert))
-                            logger.warn("Failed to set pixel binning to average");
-                        break;
-                    }
-                case SUM:
-                    {
-                        if (!BaslerJNI.setPixelBinning(
-                                ptr, 1, mode.binningConfig.horz, mode.binningConfig.vert)) {
-                            logger.warn("Failed to set pixel binning to sum");
-                        }
-                        break;
-                    }
+            if (mode.binningConfig.mode != BaslerVideoMode.BinMode.NONE) {
+                if (!BaslerJNI.setPixelBinning(
+                        ptr,
+                        mode.binningConfig.mode == BaslerVideoMode.BinMode.AVERAGE ? 0 : 1,
+                        mode.binningConfig.horz,
+                        mode.binningConfig.vert)) {
+                    logger.warn("Failed to set pixel binning");
+                }
+            } else {
+                if (!BaslerJNI.setPixelBinning(ptr, 0, 1, 1))
+                    logger.warn("Failed to set pixel binning to none");
             }
 
             if (!BaslerJNI.setPixelFormat(ptr, mode.pixelFormat.getValue())) {

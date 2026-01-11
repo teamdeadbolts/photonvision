@@ -46,6 +46,12 @@ dependencies {
         }
     }
 
+    if (jniPlatform == "linuxx86-64") {
+        wpilibNatives("org.teamdeadbolts:basler_jni-jni:$baslerVersion:$wpilibNativeName") {
+            transitive = false
+        }
+    }
+
     implementation("org.photonvision:rknn_jni-java:$rknnVersion") {
         transitive = false
     }
@@ -56,7 +62,7 @@ dependencies {
     implementation("org.photonvision:photon-libcamera-gl-driver-jni:$libcameraDriverVersion:linuxarm64") {
         transitive = false
     }
-    implementation("org.teamdeadbolts:basler_jni-linuxx64:$baslerVersion") {
+    implementation("org.teamdeadbolts:basler_jni-java:$baslerVersion") {
         transitive = false
     }
 
