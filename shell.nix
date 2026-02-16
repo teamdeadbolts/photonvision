@@ -1,8 +1,8 @@
-{ pkgs ? import (fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/036660e6294d7ae6e4bfd1b0f4e3f4dc2d53c483.tar.gz";
-    sha256 = "sha256:06is1fzmw06y63m0i2zyaj554pwh2p8280pg7b8ws1z0sk4r1k5c";
-  }) {}
-}:
+let
+  pkgs = import (fetchTarball {
+     url = "https://github.com/NixOS/nixpkgs/archive/e3bbbf91cf661f0972fc1c2d3db526513f6e6229.tar.gz";
+  }) {}; 
+in
 let
   ade = pkgs.stdenv.mkDerivation rec {
     pname = "ade";
@@ -32,6 +32,11 @@ let
       hash = "sha256-s+KvBrV/BxrxEvPhHzWCVFQdUQwhUdRJyb0wcGDFpeo=" ; 
     };
 
+    postPatch = (oldAttr.postPatch or "") + ''
+      substituteInPlace cmake/OpenCVGenPkgconfig.cmake \
+        --replace "cmake_minimum_required(VERSION 2.8.12.2)" "cmake_minimum_required(VERSION 3.5)"
+    '';
+
     buildInputs = (oldAttr.buildInputs or []) ++ [ ade ];
     
     nativeBuildInputs =
@@ -39,8 +44,8 @@ let
       ++ (with pkgs; [
         ant
         openjdk
-        python3
-        python3Packages.numpy
+        # python3
+        # python3Packages.numpy
       ]);
       
     cmakeFlags =
@@ -51,6 +56,10 @@ let
         "-DBUILD_opencv_gapi=ON"
         "-DWITH_ADE=ON"
         "-Dade_DIR=${ade}/lib/cmake/ade"
+        "-DBUILD_opencv_python2=OFF"
+        "-DBUILD_opencv_python3=OFF"
+        "-DOPENCV_GENERATE_TYPING_STUBS=OFF"
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
       ];
 
     postInstall = (oldAttr.postInstall or "") + ''
