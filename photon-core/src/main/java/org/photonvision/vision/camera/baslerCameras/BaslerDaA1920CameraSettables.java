@@ -15,6 +15,7 @@ public class BaslerDaA1920CameraSettables extends GenericBaslerCameraSettables {
         this.maxExposure = 1000;
 
         this.maxGain = 48;
+        setupVideoModes();
 
         // this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk.Gain, true);
         // this.getConfiguration().cameraQuirks.quirks.put(CameraQuirk, null)

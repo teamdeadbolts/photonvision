@@ -69,19 +69,32 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         if (!cameraPropertiesCached && isConnected()) {
             onCameraConnected();
         }
+
+        // 1. Check if the C++ backend flagged this hardware as disconnected
+        if (BaslerJNI.isCameraRemoved(settables.ptr)) {
+            logger.error("Camera hardware was removed! Forcing pipeline restart.");
+            throw new RuntimeException("Basler device physically disconnected.");
+        }
+
         var cameraMode = settables.getCurrentVideoMode();
         var frame = new RawFrame();
         frame.setInfo(
                 cameraMode.width, cameraMode.height, cameraMode.width * 3, cameraMode.pixelFormat);
 
-        CVMat ret;
         var start = MathUtils.wpiNanoTime();
         BaslerJNI.awaitNewFrame(settables.ptr);
-        Mat mat = new Mat(BaslerJNI.takeFrame(settables.ptr));
+        
+        long matPtr = BaslerJNI.takeFrame(settables.ptr);
+        
+        // 2. Defensive check: If the pointer is 0, the grab failed or timed out.
+        if (matPtr == 0) {
+            // Return an empty/dummy frame rather than crashing OpenCV
+            return new CapturedFrame(new CVMat(), settables.getFrameStaticProperties(), start);
+        }
 
-        ret = new CVMat(mat, frame);
-        return new CapturedFrame(
-                ret, settables.getFrameStaticProperties(), start); // TODO: Timestamping is kinda off rn
+        Mat mat = new Mat(matPtr);
+        CVMat ret = new CVMat(mat, frame);
+        return new CapturedFrame(ret, settables.getFrameStaticProperties(), start);
     }
 
     @Override

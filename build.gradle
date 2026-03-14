@@ -42,6 +42,7 @@ ext {
     rubikVersion = "v2026.0.1"
     frcYear = "2026"
     mrcalVersion = "v2026.0.0";
+    baslerVersion = "local";
 
     pubVersion = versionString
     isDev = pubVersion.startsWith("dev")

@@ -48,10 +48,10 @@ public class BaslerCameraSource extends VisionSource {
         GenericBaslerCameraSettables settables;
 
         if (quirks.hasQuirk(CameraQuirk.BaslerDaA1280Controls)) {
-            logger.info("Using Basler DaA1280 Settables");
+            logger.info("Using Basler DaA1280 Settables for " + config.nickname);
             settables = new BaslerDaA1280CameraSettables(config);
         } else if (quirks.hasQuirk(CameraQuirk.BaslerDaA1920Controls)) {
-            logger.info("Using Basler DA1920 Settables");
+            logger.info("Using Basler DA1920 Settable for " + config.nickname);
             settables = new BaslerDaA1920CameraSettables(config);
         } else {
             logger.debug("Using generic basler settables");
