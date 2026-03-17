@@ -16,7 +16,8 @@ public class BaslerFrameProvider extends CpuImageProcessor {
 
     private Runnable connectedCallback;
 
-    // private long lastFrameTimestamp = 0;
+    private long timeOffsetNs = 0;
+    private boolean timeSyncDone = false;
 
     public BaslerFrameProvider(GenericBaslerCameraSettables settables, Runnable connectedCallback) {
         this.settables = settables;
@@ -69,8 +70,6 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         if (!cameraPropertiesCached && isConnected()) {
             onCameraConnected();
         }
-
-        // 1. Check if the C++ backend flagged this hardware as disconnected
         if (BaslerJNI.isCameraRemoved(settables.ptr)) {
             logger.error("Camera hardware was removed! Forcing pipeline restart.");
             throw new RuntimeException("Basler device physically disconnected.");
@@ -81,20 +80,26 @@ public class BaslerFrameProvider extends CpuImageProcessor {
         frame.setInfo(
                 cameraMode.width, cameraMode.height, cameraMode.width * 3, cameraMode.pixelFormat);
 
-        var start = MathUtils.wpiNanoTime();
         BaslerJNI.awaitNewFrame(settables.ptr);
-        
+        long hwTimestampNs = BaslerJNI.getLatestTimestamp(settables.ptr);
         long matPtr = BaslerJNI.takeFrame(settables.ptr);
-        
-        // 2. Defensive check: If the pointer is 0, the grab failed or timed out.
+
         if (matPtr == 0) {
-            // Return an empty/dummy frame rather than crashing OpenCV
-            return new CapturedFrame(new CVMat(), settables.getFrameStaticProperties(), start);
+            return new CapturedFrame(
+                    new CVMat(), settables.getFrameStaticProperties(), MathUtils.wpiNanoTime());
         }
+
+        long currentWpiTimeNs = MathUtils.wpiNanoTime();
+        if (!timeSyncDone && hwTimestampNs > 0) {
+            timeOffsetNs = currentWpiTimeNs - hwTimestampNs;
+            timeSyncDone = true;
+        }
+
+        long synchronizedTimestamp = hwTimestampNs + timeOffsetNs;
 
         Mat mat = new Mat(matPtr);
         CVMat ret = new CVMat(mat, frame);
-        return new CapturedFrame(ret, settables.getFrameStaticProperties(), start);
+        return new CapturedFrame(ret, settables.getFrameStaticProperties(), synchronizedTimestamp);
     }
 
     @Override
