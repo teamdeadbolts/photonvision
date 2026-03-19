@@ -53,8 +53,8 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
     public void setExposureRaw(double exposureRaw) {
         this.lastExposure = exposureRaw;
         logger.debug("Setting exposure to " + exposureRaw);
-        boolean success = BaslerJNI.setExposure(ptr, exposureRaw * 1000);
-        if (!success) {
+        var res = BaslerJNI.setExposure(ptr, exposureRaw * 1000);
+        if (!res.isOk()) {
             BaslerCameraSource.logger.warn("Failed to set exposure to " + exposureRaw);
         }
     }
@@ -64,8 +64,8 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
         logger.debug("Setting auto exposure to " + cameraAutoExposure);
         this.lastAutoExposure = cameraAutoExposure;
 
-        boolean success = BaslerJNI.setAutoExposure(ptr, cameraAutoExposure);
-        if (!success) {
+        var res = BaslerJNI.setAutoExposure(ptr, cameraAutoExposure);
+        if (!res.isOk()) {
             BaslerCameraSource.logger.warn("Failed to set auto exposure to " + cameraAutoExposure);
         }
         if (!cameraAutoExposure) setExposureRaw(this.lastExposure);
@@ -79,8 +79,8 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
     @Override
     public void setAutoWhiteBalance(boolean autowb) {
         logger.debug("Setting auto white balance to " + autowb);
-        boolean success = BaslerJNI.setAutoWhiteBalance(ptr, autowb);
-        if (!success) {
+        var res = BaslerJNI.setAutoWhiteBalance(ptr, autowb);
+        if (!res.isOk()) {
             BaslerCameraSource.logger.warn("Failed to set auto white balance to " + autowb);
         }
 
@@ -98,8 +98,8 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
                         MathUtils.map(brightness, 0, 101, minBrightness, maxBrightness),
                         minBrightness,
                         maxBrightness);
-        boolean success = BaslerJNI.setBrightness(ptr, scaledBrightness);
-        if (!success) {
+        var res = BaslerJNI.setBrightness(ptr, scaledBrightness);
+        if (!res.isOk()) {
             logger.warn("Failed to set brightness to " + brightness + " (" + scaledBrightness + ")");
         }
     }
@@ -111,11 +111,11 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
         // double min = BaslerJNI.getMinGain(ptr) + 1.0; // No divide by 0
         // double max = BaslerJNI.getMaxGain(ptr);
         this.lastGain = gain;
-        boolean success =
+        var res =
                 BaslerJNI.setGain(
                         ptr,
                         MathUtil.clamp(MathUtils.map(gain, 0.0, 101.0, minGain, maxGain), minGain, maxGain));
-        if (!success) {
+        if (!res.isOk()) {
             logger.warn("Failed to set gain to " + gain);
         }
     }
@@ -166,50 +166,52 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
         synchronized (LOCK) {
             if (ptr != 0) {
                 logger.debug("Stopping camera");
-                if (!BaslerJNI.stopCamera(ptr)) {
+                if (BaslerJNI.stopCamera(ptr).isError()) {
                     logger.warn("Failed to stop camera when changing video mode");
                 }
 
                 logger.debug("Destroying camera");
-                if (!BaslerJNI.destroyCamera(ptr)) {
+                if (BaslerJNI.destroyCamera(ptr).isError()) {
                     logger.warn("Failed to destroy camera when changing video mode");
                 }
             }
 
             logger.debug("Creating camera");
 
-            ptr = BaslerJNI.createCamera(serial);
-            if (ptr == 0) {
+            var res = BaslerJNI.createCamera(serial);
+            if (res.isError()) {
                 logger.warn("Failed to create camera");
                 return;
             }
+            ptr = res.unwrap();
 
             BaslerJNI.stopCamera(ptr); // Just in case
 
-            if (!BaslerJNI.setDeviceLinkThroughputLimitEnable(ptr, false)) {
+            if (BaslerJNI.setDeviceLinkThroughputLimitEnable(ptr, false).isError()) {
                 logger.warn("Failed to disable throughput limit");
             }
 
             if (mode.binningConfig.mode != BaslerVideoMode.BinMode.NONE) {
-                if (!BaslerJNI.setPixelBinning(
-                        ptr,
-                        mode.binningConfig.mode == BaslerVideoMode.BinMode.AVERAGE ? 0 : 1,
-                        mode.binningConfig.horz,
-                        mode.binningConfig.vert)) {
+                if (BaslerJNI.setPixelBinning(
+                                ptr,
+                                mode.binningConfig.mode == BaslerVideoMode.BinMode.AVERAGE ? 0 : 1,
+                                mode.binningConfig.horz,
+                                mode.binningConfig.vert)
+                        .isError()) {
                     logger.warn("Failed to set pixel binning");
                 }
             } else {
-                if (!BaslerJNI.setPixelBinning(ptr, 0, 1, 1))
+                if (BaslerJNI.setPixelBinning(ptr, 0, 1, 1).isError())
                     logger.warn("Failed to set pixel binning to none");
             }
 
-            if (!BaslerJNI.setPixelFormat(ptr, mode.pixelFormat.getValue())) {
+            if (BaslerJNI.setPixelFormat(ptr, mode.pixelFormat.getValue()).isError()) {
                 logger.warn("Failed to set pixel format");
                 return;
             }
 
             logger.info("Setting fps to " + mode.fps);
-            if (!BaslerJNI.setFrameRate(ptr, mode.fps)) {
+            if (BaslerJNI.setFrameRate(ptr, mode.fps).isError()) {
                 logger.warn("Settings frame rate not supported");
                 return;
             }
@@ -229,7 +231,7 @@ public class GenericBaslerCameraSettables extends VisionSourceSettables {
             }
 
             logger.debug("Starting camera");
-            if (!BaslerJNI.startCamera(ptr)) {
+            if (BaslerJNI.startCamera(ptr).isError()) {
                 logger.error("Failed to start camera when changing video mode");
                 BaslerJNI.destroyCamera(ptr);
                 ptr = 0;

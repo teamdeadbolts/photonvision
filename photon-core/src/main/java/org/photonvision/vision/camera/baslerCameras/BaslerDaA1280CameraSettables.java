@@ -24,18 +24,10 @@ public class BaslerDaA1280CameraSettables extends GenericBaslerCameraSettables {
         videoModes.put(
                 0,
                 new BaslerVideoMode(
-                        PixelFormat.kBGR.getValue(), 1280, 960, 43, new BinningConfig(BinMode.NONE, 0, 0)));
+                        PixelFormat.kBGR.getValue(), 1280, 960, 54, new BinningConfig(BinMode.NONE, 0, 0)));
         videoModes.put(
                 1,
                 new BaslerVideoMode(
-                        PixelFormat.kUYVY.getValue(), 1280, 960, 52, new BinningConfig(BinMode.NONE, 0, 0)));
-        videoModes.put(
-                2,
-                new BaslerVideoMode(
-                        PixelFormat.kBGR.getValue(),
-                        1280 / 2,
-                        960 / 2,
-                        43,
-                        new BinningConfig(BinMode.AVERAGE, 2, 2)));
+                        PixelFormat.kUYVY.getValue(), 1280, 960, 54, new BinningConfig(BinMode.NONE, 0, 0)));
     }
 }

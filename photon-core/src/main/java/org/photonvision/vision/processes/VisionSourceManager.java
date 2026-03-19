@@ -316,7 +316,7 @@ public class VisionSourceManager {
                     .forEach(cameraInfos::add);
         }
         if (BaslerJNI.isSupported()) {
-            Stream.of(BaslerJNI.getConnectedCameras())
+            Stream.of(BaslerJNI.getConnectedCameras().unwrap())
                     .map(
                             serial -> {
                                 CameraModel model = BaslerJNI.getCameraModel(serial);
